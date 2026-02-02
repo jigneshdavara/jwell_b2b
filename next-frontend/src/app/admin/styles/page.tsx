@@ -3,11 +3,18 @@
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
+import Checkbox from '@/components/ui/Checkbox';
 import { Head } from '@/components/Head';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 import { toastError } from '@/utils/toast';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { styleSchema, StyleFormData } from '@/lib/validation/admin.schema';
 
 type StyleRow = {
     id: number;
@@ -33,12 +40,26 @@ export default function AdminStylesIndex() {
     const [deleteConfirm, setDeleteConfirm] = useState<StyleRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
-    const [formData, setFormData] = useState({
-        code: '',
-        name: '',
-        description: '',
-        is_active: true,
-        display_order: 0,
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        trigger,
+    } = useForm<StyleFormData>({
+        resolver: zodResolver(styleSchema),
+        mode: "onSubmit",
+        reValidateMode: "onBlur",
+        shouldFocusError: true,
+        defaultValues: {
+            code: '',
+            name: '',
+            description: '',
+            is_active: true,
+            display_order: 0,
+        },
     });
     const [processing, setProcessing] = useState(false);
 
@@ -82,7 +103,7 @@ export default function AdminStylesIndex() {
     const resetFormAndModal = () => {
         setEditingStyle(null);
         setModalOpen(false);
-        setFormData({
+        reset({
             code: '',
             name: '',
             description: '',
@@ -98,7 +119,7 @@ export default function AdminStylesIndex() {
 
     const openEditModal = (style: StyleRow) => {
         setEditingStyle(style);
-        setFormData({
+        reset({
             code: style.code || '',
             name: style.name,
             description: style.description || '',
@@ -108,16 +129,15 @@ export default function AdminStylesIndex() {
         setModalOpen(true);
     };
 
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const onSubmit = async (data: StyleFormData) => {
         setProcessing(true);
         try {
             const payload = {
-                code: formData.code || null,
-                name: formData.name,
-                description: formData.description || null,
-                is_active: formData.is_active,
-                display_order: Number(formData.display_order) || 0,
+                code: data.code,
+                name: data.name,
+                description: data.description || null,
+                is_active: data.is_active,
+                display_order: data.display_order,
             };
 
             if (editingStyle) {
@@ -128,8 +148,27 @@ export default function AdminStylesIndex() {
             resetFormAndModal();
             await loadStyles();
         } catch (error: any) {
-            console.error('Failed to save style:', error);
-            toastError(error.response?.data?.message || 'Failed to save style. Please try again.');
+            // Handle field-level errors
+            if (error.response?.data?.errors) {
+                const fieldErrors = error.response.data.errors;
+                Object.keys(fieldErrors).forEach((key) => {
+                    const errorMessage = Array.isArray(fieldErrors[key]) 
+                        ? fieldErrors[key][0] 
+                        : fieldErrors[key];
+                    setError(key as keyof StyleFormData, {
+                        type: 'server',
+                        message: errorMessage,
+                    });
+                });
+            }
+            
+            // Show error message in toast (prioritize message field)
+            const errorMessage = error.response?.data?.message 
+                ? (Array.isArray(error.response.data.message) 
+                    ? error.response.data.message.join(', ') 
+                    : error.response.data.message)
+                : 'Failed to save style. Please try again.';
+            toastError(errorMessage);
         } finally {
             setProcessing(false);
         }
@@ -400,76 +439,149 @@ export default function AdminStylesIndex() {
                     </div>
 
                     <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
-                        <form onSubmit={submit} className="space-y-4 sm:space-y-6" id="style-form">
+                        <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4 sm:space-y-6" id="style-form">
                             <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                                 <div className="space-y-4 sm:space-y-6">
                                     <div className="grid gap-3 sm:gap-4">
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Code</span>
-                                            <input
-                                                type="text"
-                                                value={formData.code}
-                                                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                placeholder="e.g., CLS, MOD"
+                                        {/* Code */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="code">Code</InputLabel>
+                                            <Controller
+                                                name="code"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="code"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                trigger('code');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('code');
+                                                            }}
+                                                            placeholder="e.g., CLS, MOD"
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Name</span>
-                                            <input
-                                                type="text"
-                                                value={formData.name}
-                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                required
+                                        </div>
+
+                                        {/* Name */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="name">Name</InputLabel>
+                                            <Controller
+                                                name="name"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="name"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                trigger('name');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('name');
+                                                            }}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Display order</span>
-                                            <input
-                                                type="number"
-                                                value={formData.display_order === 0 ? '' : formData.display_order}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    setFormData({ ...formData, display_order: value === '' ? 0 : Number(value) });
-                                                }}
-                                                onBlur={(e) => {
-                                                    if (e.target.value === '') {
-                                                        setFormData({ ...formData, display_order: 0 });
-                                                    }
-                                                }}
-                                                onFocus={(e) => {
-                                                    if (e.target.value === '0') {
-                                                        e.target.select();
-                                                    }
-                                                }}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                min={0}
+                                        </div>
+
+                                        {/* Display Order */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="display_order">Display order</InputLabel>
+                                            <Controller
+                                                name="display_order"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="display_order"
+                                                            type="number"
+                                                            value={field.value?.toString() || '0'}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                field.onChange(value);
+                                                                trigger('display_order');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('display_order');
+                                                            }}
+                                                            onFocus={(e) => {
+                                                                if (e.target.value === '0') {
+                                                                    e.target.select();
+                                                                }
+                                                            }}
+                                                            min={0}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                        </label>
+                                        </div>
                                     </div>
 
-                                    <label className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.is_active}
-                                            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                    {/* Is Active */}
+                                    <div className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3">
+                                        <Controller
+                                            name="is_active"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onChange={(e) => field.onChange(e.target.checked)}
+                                                />
+                                            )}
                                         />
-                                        Active for selection
-                                    </label>
+                                        <InputLabel htmlFor="is_active" className="mb-0 cursor-pointer">
+                                            Active for selection
+                                        </InputLabel>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4 sm:space-y-6">
-                                    <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                        <span>Description</span>
-                                        <textarea
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            className="min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                            placeholder="Optional notes for team (e.g. usage, category)."
+                                    {/* Description */}
+                                    <div className="flex flex-col gap-1.5 sm:gap-2">
+                                        <InputLabel htmlFor="description">Description</InputLabel>
+                                        <Controller
+                                            name="description"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <>
+                                                    <textarea
+                                                        id="description"
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            trigger('description');
+                                                        }}
+                                                        onBlur={async () => {
+                                                            field.onBlur();
+                                                            await trigger('description');
+                                                        }}
+                                                        placeholder="Optional notes for team (e.g. usage, category)."
+                                                        className={`min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] mt-1 rounded-lg sm:rounded-xl border ${fieldState.error ? 'border-red-300' : 'border-slate-300'} bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${fieldState.error ? 'focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    />
+                                                    {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                </>
+                                            )}
                                         />
-                                    </label>
+                                    </div>
                                 </div>
                             </div>
                         </form>

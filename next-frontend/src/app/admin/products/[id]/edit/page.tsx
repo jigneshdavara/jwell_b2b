@@ -1,191 +1,33 @@
 'use client';
 
-import RichTextEditor from '@/components/RichTextEditor';
 import { Head } from '@/components/Head';
-import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/variantMatrixGenerator';
 import { useParams, useRouter } from 'next/navigation';
 import { adminService } from '@/services/adminService';
 import { toastSuccess, toastError } from '@/utils/toast';
 import { getMediaUrl } from '@/utils/mediaUrl';
-
-type VariantMetalForm = {
-    id?: number;
-    metal_id: number | '';
-    metal_purity_id: number | '';
-    metal_tone_id: number | '';
-    metal_weight: string;
-};
-
-type VariantDiamondForm = {
-    id?: number;
-    diamond_id?: number | '';
-    diamonds_count?: string;
-};
-
-type VariantForm = {
-    id?: number;
-    sku: string;
-    label: string;
-    metal_id: number | '';
-    metal_purity_id: number | '';
-    diamond_option_key: string | null;
-    size_id?: number | null;
-    is_default: boolean;
-    inventory_quantity?: number | string;
-    metadata?: Record<string, any>;
-    metals?: VariantMetalForm[];
-    diamonds?: VariantDiamondForm[];
-};
-
-type Product = {
-    id?: number;
-    name?: string;
-    titleline?: string;
-    sku?: string;
-    description?: string;
-    brand_id?: number;
-    category_id?: number;
-    style_ids?: number[];
-    category_ids?: number[];
-    subcategory_ids?: number[];
-    category?: {
-        id: number;
-        name: string;
-        sizes?: Array<{ id: number; name: string; value?: string }>;
-    } | null;
-    catalog_ids?: number[];
-    collection?: string;
-    producttype?: string;
-    gender?: string;
-    making_charge_amount?: number | string;
-    making_charge_percentage?: number | string;
-    is_active?: boolean;
-    metadata?: Record<string, any> | null;
-    media?: ProductMedia[];
-    variants?: Array<{
-        id?: number;
-        sku?: string;
-        label?: string;
-        is_default?: boolean;
-        inventory_quantity?: number;
-        metadata?: Record<string, any>;
-        metals?: Array<{
-            id?: number;
-            metal_id?: number | '';
-            metal_purity_id?: number | '';
-            metal_tone_id?: number | '';
-            metal_weight?: number | string;
-        }>;
-        diamonds?: Array<{
-            id?: number;
-            diamond_id?: number | '';
-            diamonds_count?: number | string;
-        }>;
-    }>;
-};
-
-type OptionListItem = {
-    id: number;
-    name: string;
-    sizes?: Array<{ id: number; name: string; value?: string }>;
-    styles?: Array<{ id: number; name: string }>;
-};
-
-type OptionList = Record<string, string>;
-
-type MetalOption = {
-    id: number;
-    name: string;
-};
-
-type MetalPurityOption = {
-    id: number;
-    metal_id: number;
-    name: string;
-    metal: { id: number; name: string } | null;
-    is_active?: boolean;
-};
-
-type MetalToneOption = {
-    id: number;
-    metal_id: number;
-    name: string;
-    metal: { id: number; name: string } | null;
-    is_active?: boolean;
-};
-
-type CatalogOption = {
-    id: number;
-    code: string | null;
-    name: string;
-    products_count: number;
-    display_order: number;
-    is_active: boolean;
-};
-
-type SubcategoryOption = {
-    id: number;
-    name: string;
-    parent_id: number;
-};
-
-type AdminProductEditPageProps = {
-    product?: Product | null;
-    brands: OptionList;
-    categories: OptionListItem[];
-    parentCategories: OptionListItem[];
-    subcategories: SubcategoryOption[];
-    catalogs: CatalogOption[];
-    diamonds: OptionListItem[];
-    userGroups: OptionListItem[];
-    metals: MetalOption[];
-    metalPurities: MetalPurityOption[];
-    metalTones: MetalToneOption[];
-    sizes: OptionListItem[];
-    errors: Record<string, string>;
-};
-
-type FormData = {
-    sku: string;
-    name: string;
-    titleline: string;
-    description: string;
-    brand_id: string;
-    category_id: string;
-    style_ids?: number[];
-    collection: string;
-    producttype: string;
-    gender: string;
-    making_charge_amount: string;
-    making_charge_types: ('fixed' | 'percentage')[];
-    making_charge_percentage: string;
-    is_active: boolean;
-    variants?: VariantForm[];
-    diamond_selections?: Array<{ diamond_id: number | ''; count: string }>;
-    metal_selections?: Array<{ metal_id: number | ''; metal_purity_id: number | ''; metal_tone_id: number | ''; weight: string }>;
-    selected_metals?: number[];
-    metal_configurations?: Record<number, {
-        purities: number[];
-        tones: number[];
-    }>;
-    uses_diamond?: boolean;
-    catalog_ids?: number[];
-    subcategory_ids?: number[];
-    media_uploads?: File[];
-    removed_media_ids?: number[];
-    selected_sizes?: number[];
-    all_sizes_available?: boolean;
-    show_all_variants_by_size?: boolean;
-};
-
-type ProductMedia = {
-    id: number;
-    type: string;
-    url: string;
-    display_order: number;
-    metadata?: Record<string, unknown> | null;
-};
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { productSchema, ProductFormData } from '@/lib/validation/admin.schema';
+import BasicInfoSection from '@/components/ui/BasicInfoSection';
+import MediaSection from '@/components/ui/MediaSection';
+import VariantConfigurationSection from '@/components/ui/VariantConfigurationSection';
+import ProductDescriptionSection from '@/components/ui/ProductDescriptionSection';
+import type {
+    VariantMetalForm,
+    VariantDiamondForm,
+    VariantForm,
+    AdminProduct as Product,
+    OptionListItem,
+    OptionList,
+    MetalOption,
+    MetalPurityOption,
+    MetalToneOption,
+    CatalogOption,
+    SubcategoryOption,
+    AdminProductMedia as ProductMedia,
+} from '@/types/product';
 
 const emptyVariant = (isDefault = false): VariantForm => ({
     sku: '',
@@ -206,756 +48,6 @@ const createEmptyDiamond = (): VariantDiamondForm => ({
     diamonds_count: '',
 });
 
-type CatalogMultiSelectProps = {
-    catalogs: CatalogOption[];
-    selectedIds: number[];
-    onChange: (selectedIds: number[]) => void;
-    error?: string;
-};
-
-type SubcategoryMultiSelectProps = {
-    subcategories: SubcategoryOption[];
-    selectedIds: number[];
-    parentCategoryId: number | '';
-    onChange: (selectedIds: number[]) => void;
-    error?: string;
-};
-
-type StyleMultiSelectProps = {
-    styles: Array<{ id: number; name: string }>;
-    selectedIds: number[];
-    onChange: (selectedIds: number[]) => void;
-    error?: string;
-};
-
-type SubcategoryTreeNode = SubcategoryOption & {
-    children: SubcategoryTreeNode[];
-};
-
-type SubcategoryTreeRendererProps = {
-    nodes: SubcategoryTreeNode[];
-    selectedIds: number[];
-    onToggle: (id: number) => void;
-    level: number;
-};
-
-function SubcategoryTreeRenderer({ nodes, selectedIds, onToggle, level }: SubcategoryTreeRendererProps) {
-    return (
-        <div className="space-y-0.5">
-            {nodes.map((node) => {
-                const isSelected = selectedIds.includes(node.id);
-                const hasChildren = node.children && node.children.length > 0;
-                const shouldShowChildren = hasChildren && isSelected;
-                const indentPx = level * 24;
-                const textColorClass = level === 0 
-                    ? (isSelected ? 'text-sky-900' : 'text-slate-900')
-                    : (isSelected ? 'text-sky-900' : 'text-slate-700');
-                const bgColorClass = isSelected
-                    ? 'bg-sky-50 text-sky-700'
-                    : level === 0
-                    ? 'text-slate-700 hover:bg-slate-50'
-                    : 'text-slate-600 hover:bg-slate-50';
-
-                const buttonContent = (
-                    <>
-                        <button
-                            type="button"
-                            onClick={() => onToggle(node.id)}
-                            className={`w-full flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 text-left transition-colors ${bgColorClass}`}
-                        >
-                            <div
-                                className={`flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded border-2 transition-all ${
-                                    isSelected
-                                        ? 'border-sky-500 bg-sky-500'
-                                        : 'border-slate-300'
-                                }`}
-                            >
-                                {isSelected && (
-                                    <svg
-                                        className="h-3.5 w-3.5 text-white"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        strokeWidth={3}
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                )}
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                                <span className={`text-xs sm:text-sm font-medium truncate ${textColorClass}`}>
-                                    {node.name}
-                                </span>
-                            </div>
-
-                            {hasChildren && (
-                                <svg
-                                    className={`h-4 w-4 transition-transform ${
-                                        shouldShowChildren ? 'rotate-90 text-sky-500' : 'text-slate-400'
-                                    }`}
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            )}
-                        </button>
-
-                        {shouldShowChildren && (
-                            <SubcategoryTreeRenderer
-                                nodes={node.children}
-                                selectedIds={selectedIds}
-                                onToggle={onToggle}
-                                level={level + 1}
-                            />
-                        )}
-                    </>
-                );
-
-                return (
-                    <div key={node.id}>
-                        {level > 0 ? (
-                            <div 
-                                className="border-l-2 border-slate-200 pl-2"
-                                style={{ marginLeft: `${indentPx}px` }}
-                            >
-                                {buttonContent}
-                            </div>
-                        ) : (
-                            buttonContent
-                        )}
-                    </div>
-                );
-            })}
-        </div>
-    );
-}
-
-function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, onChange, error }: SubcategoryMultiSelectProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    const buildSubcategoryTree = useCallback((parentId: number): Array<SubcategoryOption & { children: Array<SubcategoryOption & { children: any[] }> }> => {
-        return subcategories
-            .filter(sub => sub.parent_id === parentId)
-            .map(subcategory => ({
-                ...subcategory,
-                children: buildSubcategoryTree(subcategory.id)
-            }));
-    }, [subcategories]);
-
-    const availableSubcategories = useMemo(() => {
-        if (!parentCategoryId) {
-            return [];
-        }
-        const categoryIdNum = Number(parentCategoryId);
-        return buildSubcategoryTree(categoryIdNum);
-    }, [parentCategoryId, buildSubcategoryTree]);
-
-    const toggleSubcategory = (subcategoryId: number) => {
-        if (selectedIds.includes(subcategoryId)) {
-            onChange(selectedIds.filter(id => id !== subcategoryId));
-        } else {
-            onChange([...selectedIds, subcategoryId]);
-        }
-    };
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
-
-    const selectedSubcategories = useMemo(() => {
-        return selectedIds
-            .map(id => {
-                const subcategory = subcategories.find(s => s.id === id);
-                return subcategory ? { id, name: subcategory.name } : null;
-            })
-            .filter(Boolean) as Array<{ id: number; name: string }>;
-    }, [selectedIds, subcategories]);
-
-    const removeSubcategory = (subcategoryId: number) => {
-        onChange(selectedIds.filter(id => id !== subcategoryId));
-    };
-
-    const getAllDescendantIds = useCallback((parentId: number): Set<number> => {
-        const ids = new Set<number>();
-        const children = subcategories.filter(sub => sub.parent_id === parentId);
-        children.forEach(child => {
-            ids.add(child.id);
-            const descendants = getAllDescendantIds(child.id);
-            descendants.forEach(id => ids.add(id));
-        });
-        return ids;
-    }, [subcategories]);
-
-    useEffect(() => {
-        if (parentCategoryId) {
-            const categoryIdNum = Number(parentCategoryId);
-            const validSubcategoryIds = getAllDescendantIds(categoryIdNum);
-            
-            const validIds = selectedIds.filter(id => validSubcategoryIds.has(id));
-            if (validIds.length !== selectedIds.length) {
-                onChange(validIds);
-            }
-        } else {
-            if (selectedIds.length > 0) {
-                onChange([]);
-            }
-        }
-    }, [parentCategoryId, getAllDescendantIds, selectedIds, onChange]);
-
-    return (
-        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-            <div className="flex items-center justify-between">
-                <span>Subcategories</span>
-                {selectedIds.length > 0 && (
-                    <span className="text-[10px] sm:text-xs font-medium text-sky-600">
-                        {selectedIds.length} selected
-                    </span>
-                )}
-            </div>
-            <div className="relative" ref={dropdownRef}>
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(!isOpen)}
-                    disabled={!parentCategoryId}
-                    className={`w-full rounded-lg sm:rounded-xl border ${
-                        error ? 'border-rose-300' : 'border-slate-300'
-                    } bg-white text-slate-900 shadow-sm px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
-                        isOpen ? 'border-slate-900 ring-2 ring-slate-900/20' : ''
-                    } ${
-                        !parentCategoryId ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
-                            {!parentCategoryId ? (
-                                <span className="text-xs sm:text-sm text-slate-400">Select parent category first</span>
-                            ) : selectedIds.length === 0 ? (
-                                <span className="text-xs sm:text-sm text-slate-400">Select subcategories...</span>
-                            ) : (
-                                selectedSubcategories.map((subcategory) => (
-                                    <span
-                                        key={subcategory.id}
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <span>{subcategory.name}</span>
-                                        <span
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                removeSubcategory(subcategory.id);
-                                            }}
-                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors cursor-pointer"
-                                            role="button"
-                                            tabIndex={0}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    removeSubcategory(subcategory.id);
-                                                }
-                                            }}
-                                        >
-                                            <svg
-                                                className="h-3 w-3 text-sky-600"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </span>
-                                    </span>
-                                ))
-                            )}
-                        </div>
-                        <svg
-                            className={`ml-2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400 transition-transform flex-shrink-0 ${
-                                isOpen ? 'rotate-180' : ''
-                            }`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </button>
-
-                {isOpen && parentCategoryId && (
-                    <div className="absolute z-50 mt-2 w-full rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
-                        <div className="max-h-64 overflow-y-auto p-2">
-                            {availableSubcategories.length === 0 ? (
-                                <div className="px-2.5 py-4 sm:px-3 sm:py-6 text-center text-xs sm:text-sm text-slate-400">
-                                    No subcategories available
-                                </div>
-                            ) : (
-                                <SubcategoryTreeRenderer
-                                    nodes={availableSubcategories}
-                                    selectedIds={selectedIds}
-                                    onToggle={toggleSubcategory}
-                                    level={0}
-                                />
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-            {error && <span className="text-xs text-rose-500">{error}</span>}
-        </label>
-    );
-}
-
-function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogMultiSelectProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    const filteredCatalogs = useMemo(() => {
-        if (!searchTerm.trim()) {
-            return catalogs;
-        }
-        const search = searchTerm.toLowerCase();
-        return catalogs.filter((catalog) =>
-            catalog.name.toLowerCase().includes(search) ||
-            catalog.code?.toLowerCase().includes(search)
-        );
-    }, [catalogs, searchTerm]);
-
-    const toggleCatalog = (catalogId: number) => {
-        if (selectedIds.includes(catalogId)) {
-            onChange(selectedIds.filter(id => id !== catalogId));
-        } else {
-            onChange([...selectedIds, catalogId]);
-        }
-    };
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-                setSearchTerm('');
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
-
-    const selectedCatalogs = useMemo(() => {
-        return selectedIds
-            .map(id => {
-                const catalog = catalogs.find(c => c.id === id);
-                return catalog ? { id, name: catalog.name } : null;
-            })
-            .filter(Boolean) as Array<{ id: number; name: string }>;
-    }, [selectedIds, catalogs]);
-
-    const removeCatalog = (catalogId: number) => {
-        onChange(selectedIds.filter(id => id !== catalogId));
-    };
-
-    return (
-        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-            <div className="flex items-center justify-between">
-                <span>Catalogs</span>
-                {selectedIds.length > 0 && (
-                    <span className="text-[10px] sm:text-xs font-medium text-sky-600">
-                        {selectedIds.length} selected
-                    </span>
-                )}
-            </div>
-            <div className="relative" ref={dropdownRef}>
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full rounded-lg sm:rounded-xl border ${
-                        error ? 'border-rose-300' : 'border-slate-300'
-                    } bg-white text-slate-900 shadow-sm px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
-                        isOpen ? 'border-slate-900 ring-2 ring-slate-900/20' : ''
-                    }`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
-                            {selectedIds.length === 0 ? (
-                                <span className="text-xs sm:text-sm text-slate-400">Select catalogs...</span>
-                            ) : (
-                                selectedCatalogs.map((catalog) => (
-                                    <span
-                                        key={catalog.id}
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <span>{catalog.name}</span>
-                                        <span
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                removeCatalog(catalog.id);
-                                            }}
-                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors cursor-pointer"
-                                            role="button"
-                                            tabIndex={0}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    removeCatalog(catalog.id);
-                                                }
-                                            }}
-                                        >
-                                            <svg
-                                                className="h-3 w-3 text-sky-600"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </span>
-                                    </span>
-                                ))
-                            )}
-                        </div>
-                        <svg
-                            className={`ml-2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400 transition-transform flex-shrink-0 ${
-                                isOpen ? 'rotate-180' : ''
-                            }`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </button>
-
-                {isOpen && (
-                    <div className="absolute z-50 mt-2 w-full rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
-                        {catalogs.length > 5 && (
-                            <div className="border-b border-slate-100 p-2 sm:p-3">
-                                <div className="relative">
-                                    <svg
-                                        className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                    <input
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Search catalogs..."
-                                        className="w-full rounded-lg sm:rounded-xl border border-slate-200 bg-white pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="max-h-64 overflow-y-auto p-2">
-                            {filteredCatalogs.length === 0 ? (
-                                <div className="px-2.5 py-4 sm:px-3 sm:py-6 text-center text-xs sm:text-sm text-slate-400">
-                                    {searchTerm ? 'No catalogs found' : 'No catalogs available'}
-                                </div>
-                            ) : (
-                                <div className="space-y-1">
-                                    {filteredCatalogs.map((catalog) => {
-                                        const isSelected = selectedIds.includes(catalog.id);
-                                        return (
-                                            <button
-                                                key={catalog.id}
-                                                type="button"
-                                                onClick={() => toggleCatalog(catalog.id)}
-                                                className={`w-full flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 text-left transition-colors ${
-                                                    isSelected
-                                                        ? 'bg-sky-50 text-sky-700'
-                                                        : 'text-slate-700 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                <div
-                                                    className={`flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded border-2 transition-all ${
-                                                        isSelected
-                                                            ? 'border-sky-500 bg-sky-500'
-                                                            : 'border-slate-300'
-                                                    }`}
-                                                >
-                                                    {isSelected && (
-                                                        <svg
-                                                            className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                            strokeWidth={3}
-                                                        >
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    )}
-                                                </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1.5 sm:gap-2">
-                                                        <span className={`text-xs sm:text-sm font-medium truncate ${
-                                                            isSelected ? 'text-sky-900' : 'text-slate-900'
-                                                        }`}>
-                                                            {catalog.name}
-                                                        </span>
-                                                        {catalog.code && (
-                                                            <span className={`text-[10px] sm:text-xs font-mono ${
-                                                                isSelected ? 'text-sky-600' : 'text-slate-500'
-                                                            }`}>
-                                                                ({catalog.code})
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-            {error && <span className="text-xs text-rose-500">{error}</span>}
-        </label>
-    );
-}
-
-function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSelectProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    const filteredStyles = useMemo(() => {
-        if (!searchTerm.trim()) {
-            return styles;
-        }
-        const search = searchTerm.toLowerCase();
-        return styles.filter((style) =>
-            style.name.toLowerCase().includes(search)
-        );
-    }, [styles, searchTerm]);
-
-    const toggleStyle = (styleId: number) => {
-        if (selectedIds.includes(styleId)) {
-            onChange(selectedIds.filter(id => id !== styleId));
-        } else {
-            onChange([...selectedIds, styleId]);
-        }
-    };
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-                setSearchTerm('');
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
-
-    const selectedStyles = useMemo(() => {
-        return selectedIds
-            .map(id => {
-                const style = styles.find(s => s.id === id);
-                return style ? { id, name: style.name } : null;
-            })
-            .filter(Boolean) as Array<{ id: number; name: string }>;
-    }, [selectedIds, styles]);
-
-    const removeStyle = (styleId: number) => {
-        onChange(selectedIds.filter(id => id !== styleId));
-    };
-
-    return (
-        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-            <div className="flex items-center justify-between">
-                <span>Style</span>
-                {selectedIds.length > 0 && (
-                    <span className="text-[10px] sm:text-xs font-medium text-sky-600">
-                        {selectedIds.length} selected
-                    </span>
-                )}
-            </div>
-            <div className="relative" ref={dropdownRef}>
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full rounded-lg sm:rounded-xl border ${
-                        error ? 'border-rose-300' : 'border-slate-300'
-                    } bg-white text-slate-900 shadow-sm px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
-                        isOpen ? 'border-slate-900 ring-2 ring-slate-900/20' : ''
-                    }`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
-                            {selectedIds.length === 0 ? (
-                                <span className="text-xs sm:text-sm text-slate-400">Select styles...</span>
-                            ) : (
-                                selectedStyles.map((style) => (
-                                    <span
-                                        key={style.id}
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <span>{style.name}</span>
-                                        <span
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                removeStyle(style.id);
-                                            }}
-                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors cursor-pointer"
-                                            role="button"
-                                            tabIndex={0}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    removeStyle(style.id);
-                                                }
-                                            }}
-                                        >
-                                            <svg
-                                                className="h-3 w-3 text-sky-600"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </span>
-                                    </span>
-                                ))
-                            )}
-                        </div>
-                        <svg
-                            className={`ml-2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400 transition-transform flex-shrink-0 ${
-                                isOpen ? 'rotate-180' : ''
-                            }`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </button>
-
-                {isOpen && (
-                    <div className="absolute z-50 mt-2 w-full rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
-                        {styles.length > 5 && (
-                            <div className="border-b border-slate-100 p-2 sm:p-3">
-                                <div className="relative">
-                                    <svg
-                                        className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                    <input
-                                        type="text"
-                                        placeholder="Search styles..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full rounded-lg border border-slate-200 bg-white pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="max-h-64 overflow-y-auto p-2">
-                            {filteredStyles.length === 0 ? (
-                                <div className="px-2.5 py-4 sm:px-3 sm:py-6 text-center text-xs sm:text-sm text-slate-400">
-                                    {searchTerm ? 'No styles found' : 'No styles available'}
-                                </div>
-                            ) : (
-                                <div className="space-y-1">
-                                    {filteredStyles.map((style) => {
-                                        const isSelected = selectedIds.includes(style.id);
-                                        return (
-                                            <button
-                                                key={style.id}
-                                                type="button"
-                                                onClick={() => toggleStyle(style.id)}
-                                                className={`w-full flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 text-left transition-colors ${
-                                                    isSelected
-                                                        ? 'bg-sky-50 text-sky-700'
-                                                        : 'text-slate-700 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                <div
-                                                    className={`flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded border-2 transition-all ${
-                                                        isSelected
-                                                            ? 'border-sky-500 bg-sky-500'
-                                                            : 'border-slate-300'
-                                                    }`}
-                                                >
-                                                    {isSelected && (
-                                                        <svg
-                                                            className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                            strokeWidth={3}
-                                                        >
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    )}
-                                                </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <span className={`text-xs sm:text-sm font-medium truncate ${
-                                                        isSelected ? 'text-sky-900' : 'text-slate-900'
-                                                    }`}>
-                                                        {style.name}
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-            {error && <span className="text-xs text-rose-500">{error}</span>}
-        </label>
-    );
-}
 
 export default function AdminProductEdit() {
     const params = useParams();
@@ -998,8 +90,6 @@ export default function AdminProductEdit() {
                 const parentCats = options.parentCategories || (options.categories || []).filter((cat: any) => !cat.parent_id);
                 
                 // Debug: Log to verify backend data
-                console.log('Backend parentCategories:', options.parentCategories);
-                console.log('Filtered parentCats:', parentCats);
                 
                 const mappedParentCategories = parentCats.map((cat: any) => {
                     // Backend might return sizes/styles in different formats
@@ -1049,13 +139,6 @@ export default function AdminProductEdit() {
                         }))
                         : [];
                     
-                    // Debug: Log each category with sizes
-                    console.log(`Category "${cat.name}" (ID: ${Number(cat.id)}) - Sizes: ${sizes.length}, Styles: ${styles.length}`, { 
-                        sizes, 
-                        styles,
-                        rawCategory: cat 
-                    });
-                    
                     return {
                         id: Number(cat.id),
                         name: cat.name,
@@ -1063,8 +146,6 @@ export default function AdminProductEdit() {
                         styles,
                     };
                 });
-                
-                console.log('Mapped parentCategories:', mappedParentCategories);
                 setParentCategories(mappedParentCategories);
                 
                 // Subcategories
@@ -1179,7 +260,6 @@ export default function AdminProductEdit() {
                         });
                         
                         setParentCategories(updatedParentCategories);
-                        console.log('Updated parentCategories with sizes and styles from single getCategories API call:', updatedParentCategories);
                     } catch (error) {
                         console.error('Failed to fetch category sizes/styles:', error);
                         // Continue with categories without sizes if fetch fails
@@ -1319,19 +399,19 @@ export default function AdminProductEdit() {
     }, [product]);
 
     // Initialize form data from product
-    const getInitialFormData = useMemo((): FormData => ({
+    const getInitialFormData = useMemo((): ProductFormData => ({
         sku: product?.sku ?? '',
         name: product?.name ?? '',
         titleline: product?.titleline ?? '',
         description: product?.description ?? '',
         catalog_ids: product?.catalog_ids ?? [],
         subcategory_ids: (product?.subcategory_ids ?? []).map((id: any) => Number(id)).filter((id: any) => !isNaN(id) && id > 0),
-        brand_id: String(product?.brand_id ?? ''),
-        category_id: String(product?.category_id ?? ''),
+        brand_id: product?.brand_id ? String(product.brand_id) : '',
+        category_id: product?.category_id ? String(product.category_id) : '',
         style_ids: (product?.style_ids || []).map((id: any) => Number(id)).filter((id: any) => !isNaN(id) && id > 0),
         collection: product?.collection ?? '',
         producttype: product?.producttype ?? '',
-        gender: product?.gender ?? '',
+        gender: (product?.gender && ['Men', 'Women', 'Unisex', 'Kids'].includes(product.gender)) ? product.gender as 'Men' | 'Women' | 'Unisex' | 'Kids' : 'Men',
         making_charge_amount: product?.making_charge_amount ? String(product.making_charge_amount) : '',
         making_charge_types: (() => {
             const hasFixed = product?.making_charge_amount && Number(product.making_charge_amount) > 0;
@@ -1439,25 +519,42 @@ export default function AdminProductEdit() {
         removed_media_ids: [],
     }), [product, extractSelectionsFromVariants]);
 
-    // Initialize data state
-    const [data, setData] = useState<FormData>(getInitialFormData);
-    
-    // Update data when product loads
+    // Initialize React Hook Form
+    const {
+        control,
+        handleSubmit,
+        watch,
+        setValue,
+        clearErrors,
+        formState: { errors: formErrors, isSubmitting },
+        reset,
+        trigger,
+    } = useForm<ProductFormData>({
+        resolver: zodResolver(productSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onChange',
+        shouldFocusError: true,
+        defaultValues: getInitialFormData as any,
+    });
+
+    // Update form when product loads
     useEffect(() => {
-        // Update form data when:
-        // 1. Creating new product (productId is null) - use empty form data immediately
-        // 2. Editing existing product (productId exists) - wait until product is loaded (product !== null)
         if (!productId || (productId && product !== null)) {
-            setData(getInitialFormData);
+            reset(getInitialFormData as any);
         }
-    }, [product, productId, getInitialFormData]);
-    
-    // Helper function for setData that supports string field name pattern
-    // For functional updates, use setData directly: setData((prev) => ({ ...prev, field: value }))
-    // For string updates, use setDataField: setDataField('field', value)
+    }, [product, productId, getInitialFormData, reset]);
+
+    // Watch form values for reactive updates
+    const data = watch();
+
+    // Helper function for setValue that supports string field name pattern
     const setDataField = (field: string, value: any) => {
-        setData((prev: FormData) => ({ ...prev, [field]: value }));
+        setValue(field as any, value, { shouldValidate: true });
         // Clear error for this field when user starts typing (Laravel-style validation)
+        if (formErrors[field as keyof typeof formErrors]) {
+            clearErrors(field as any);
+        }
+        // Also clear from separate errors state (for API errors)
         if (errors[field]) {
             setErrors((prev) => {
                 const newErrors = { ...prev };
@@ -1467,25 +564,21 @@ export default function AdminProductEdit() {
         }
     };
 
-    const [localDescription, setLocalDescription] = useState(data.description);
+    const [localDescription, setLocalDescription] = useState(data?.description || '');
     const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
 
     // Ensure show_all_variants_by_size defaults to true when sizes are selected
     useEffect(() => {
-        if ((data.selected_sizes || []).length > 0 && data.show_all_variants_by_size === undefined) {
-            setData((prev: FormData) => ({
-                ...prev,
-                show_all_variants_by_size: true,
-            }));
+        if ((data?.selected_sizes || []).length > 0 && data?.show_all_variants_by_size === undefined) {
+            setValue('show_all_variants_by_size', true);
         }
-    }, [data.selected_sizes, data.show_all_variants_by_size]);
+    }, [data?.selected_sizes, data?.show_all_variants_by_size, setValue]);
 
     useEffect(() => {
-        if (data.description !== localDescription) {
-            setLocalDescription(data.description);
+        if (data?.description !== localDescription) {
+            setLocalDescription(data?.description || '');
         }
-    }, [data.description]);
+    }, [data?.description]);
 
     const handleDescriptionChange = useCallback((value: string) => {
         setLocalDescription(value);
@@ -1590,7 +683,7 @@ export default function AdminProductEdit() {
     );
 
     const buildVariantMeta = useCallback(
-        (variant: VariantForm, state: FormData) => {
+        (variant: VariantForm, state: ProductFormData) => {
             let metalLabel = '';
 
             if (variant.metals && variant.metals.length > 0) {
@@ -1743,7 +836,7 @@ export default function AdminProductEdit() {
     );
 
     const recalculateVariants = useCallback(
-        (draft: FormData) =>
+        (draft: ProductFormData) =>
             (draft.variants || []).map((variant, index) => {
                 const meta = buildVariantMeta(variant, draft);
                 const previousAutoLabel = (variant.metadata?.auto_label as string | undefined) ?? '';
@@ -1774,40 +867,25 @@ export default function AdminProductEdit() {
 
 
     const addDiamondSelection = () => {
-        setData((prev: FormData) => {
-            const currentSelections = prev.diamond_selections || [];
-            return {
-                ...prev,
-                diamond_selections: [...currentSelections, { diamond_id: '', count: '' }],
-            };
-        });
+        const currentSelections = watch('diamond_selections') || [];
+        setValue('diamond_selections', [...currentSelections, { diamond_id: '', count: '' }] as any);
     };
 
     const removeDiamondSelection = (index: number) => {
-        setData((prev: FormData) => {
-            const currentSelections = prev.diamond_selections || [];
-            return {
-                ...prev,
-                diamond_selections: currentSelections.filter((_, i) => i !== index),
-            };
-        });
+        const currentSelections = watch('diamond_selections') || [];
+        setValue('diamond_selections', currentSelections.filter((_, i) => i !== index) as any);
     };
 
     const updateDiamondSelection = (index: number, field: 'diamond_id' | 'count', value: number | string) => {
-        setData((prev: FormData) => {
-            const currentSelections = prev.diamond_selections || [];
-            const updatedSelections = currentSelections.map((selection, i) => {
-                if (i !== index) return selection;
-                return {
-                    ...selection,
-                    [field]: value,
-                };
-            });
+        const currentSelections = watch('diamond_selections') || [];
+        const updatedSelections = currentSelections.map((selection, i) => {
+            if (i !== index) return selection;
             return {
-                ...prev,
-                diamond_selections: updatedSelections,
+                ...selection,
+                [field]: value,
             };
         });
+        setValue('diamond_selections', updatedSelections as any);
     };
 
     // Helper function to generate a unique key for a variant
@@ -1879,26 +957,32 @@ export default function AdminProductEdit() {
                 return remaining;
             });
         } else {
-            // Update data.variants if generatedMatrixVariants is not being used
-            setData((prev: FormData) => {
-                if ((prev.variants || []).length === 1) {
-                    return prev;
-                }
+            // Update form variants if generatedMatrixVariants is not being used
+            const currentVariants = watch('variants') || [];
+            if (currentVariants.length <= 1) {
+                return;
+            }
 
-                const remaining = (prev.variants || []).filter((_, idx: number) => idx !== index);
-                if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
-                    remaining[0].is_default = true;
-                }
+            const remaining = currentVariants.filter((_, idx: number) => idx !== index);
+            if (remaining.every((variant: any) => !variant.is_default) && remaining.length > 0) {
+                remaining[0].is_default = true;
+            }
 
-                const draft: FormData = {
-                    ...prev,
-                    variants: remaining,
-                };
+            const draft: ProductFormData = {
+                ...watch(),
+                variants: remaining.map(v => ({
+                    ...v,
+                    metals: v.metals ?? [],
+                    diamonds: v.diamonds ?? [],
+                })) as VariantForm[],
+            };
 
-                draft.variants = recalculateVariants(draft);
-
-                return draft;
-            });
+            const recalculated = recalculateVariants(draft);
+            setValue('variants', recalculated.map(v => ({
+                ...v,
+                metals: v.metals ?? [],
+                diamonds: v.diamonds ?? [],
+            })) as VariantForm[]);
         }
     };
 
@@ -1912,11 +996,11 @@ export default function AdminProductEdit() {
             
             // If "Show all variants" is unchecked, inventory_quantity is common for all variants with same metal
             // If "Show all variants" is checked, inventory_quantity is separate for each variant
-            const shouldGroupUpdate = (data.show_all_variants_by_size === false) 
+            const shouldGroupUpdate = (watch('show_all_variants_by_size') === false) 
                 && (field === 'inventory_quantity');
             
             // For sku, label, is_default: group when all_sizes_available OR show_all_variants_by_size is false
-            const shouldGroupOtherFields = (data.all_sizes_available === true || data.show_all_variants_by_size === false) 
+            const shouldGroupOtherFields = (watch('all_sizes_available') === true || watch('show_all_variants_by_size') === false) 
                 && (field === 'sku' || field === 'label' || field === 'is_default');
             
             if (shouldGroupUpdate || shouldGroupOtherFields) {
@@ -1993,34 +1077,37 @@ export default function AdminProductEdit() {
         });
         
             // Also update form data (for backward compatibility, though we regenerate on submit)
-        setData((prev: FormData) => {
-            const targetVariant = (prev.variants || [])[index];
-            if (!targetVariant) return prev;
+            const currentVariants = watch('variants') || [];
+            if (currentVariants.length === 0) return;
+            const targetVariant = currentVariants[index];
+            if (!targetVariant) return;
             
             // If "Show all variants" is unchecked, inventory_quantity is common for all variants with same metal
             // If "Show all variants" is checked, inventory_quantity is separate for each variant
-            const shouldGroupUpdate = (prev.show_all_variants_by_size === false) 
+            const shouldGroupUpdate = (watch('show_all_variants_by_size') === false) 
                 && (field === 'inventory_quantity');
             
             // For sku, label, is_default: group when all_sizes_available OR show_all_variants_by_size is false
-            const shouldGroupOtherFields = (prev.all_sizes_available === true || prev.show_all_variants_by_size === false) 
+            const shouldGroupOtherFields = (watch('all_sizes_available') === true || watch('show_all_variants_by_size') === false) 
                 && (field === 'sku' || field === 'label' || field === 'is_default');
+            
+            let updatedVariants: any[];
             
             if (shouldGroupUpdate || shouldGroupOtherFields) {
                 const targetMetals = (targetVariant.metals || []).filter(
-                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                    (m: any) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
                 const targetMetalsKey = targetMetals
-                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                    .map((m: any) => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
                     .sort()
                     .join('|');
                 
-                const variants = (prev.variants || []).map((variant: VariantForm) => {
+                updatedVariants = currentVariants.map((variant: any) => {
                     const variantMetals = (variant.metals || []).filter(
-                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                        (m: any) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                     );
                     const variantMetalsKey = variantMetals
-                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                        .map((m: any) => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
                         .sort()
                         .join('|');
                     
@@ -2028,78 +1115,79 @@ export default function AdminProductEdit() {
                         return {
                             ...variant,
                             [field]: value,
-                        };
+                        } as VariantForm;
                     }
                     return variant;
                 });
-                
-                return {
-                    ...prev,
-                    variants,
-                };
-            }
-            
-            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
-                if (idx !== index) {
-                    return variant;
-                }
+            } else {
+                updatedVariants = currentVariants.map((variant: any, idx: number) => {
+                    if (idx !== index) {
+                        return variant;
+                    }
 
-                const nextVariant: VariantForm = { ...variant };
+                    const nextVariant: VariantForm = { ...variant };
 
-                switch (field) {
-                    case 'is_default':
-                        if (typeof value === 'boolean') {
-                            nextVariant.is_default = value;
-                        }
-                        break;
-                    case 'metal_id':
-                        if (value === '' || typeof value === 'number') {
-                            nextVariant.metal_id = value as VariantForm['metal_id'];
-                            if (value === '' || typeof value !== 'number') {
-                                nextVariant.metal_purity_id = '';
+                    switch (field) {
+                        case 'is_default':
+                            if (typeof value === 'boolean') {
+                                nextVariant.is_default = value;
                             }
-                        }
-                        break;
-                    case 'metal_purity_id':
-                        if (value === '' || typeof value === 'number') {
-                            nextVariant.metal_purity_id = value as VariantForm['metal_purity_id'];
-                        }
-                        break;
-                    case 'diamond_option_key':
-                        nextVariant.diamond_option_key = value ? String(value) : null;
-                        break;
-                    case 'sku':
-                    case 'label':
-                        if (typeof value === 'string') {
-                            nextVariant[field] = value;
-                        }
-                        break;
-                    case 'inventory_quantity':
-                        if (value === '' || value === null) {
-                            nextVariant[field] = 0;
-                        } else if (typeof value === 'string') {
-                            const numVal = parseInt(value, 10);
-                            nextVariant[field] = isNaN(numVal) ? 0 : numVal;
-                        } else if (typeof value === 'number') {
-                            nextVariant[field] = value;
-                        }
-                        break;
-                    default:
-                        break;
-                }
+                            break;
+                        case 'metal_id':
+                            if (value === '' || typeof value === 'number') {
+                                nextVariant.metal_id = value as VariantForm['metal_id'];
+                                if (value === '' || typeof value !== 'number') {
+                                    nextVariant.metal_purity_id = '';
+                                }
+                            }
+                            break;
+                        case 'metal_purity_id':
+                            if (value === '' || typeof value === 'number') {
+                                nextVariant.metal_purity_id = value as VariantForm['metal_purity_id'];
+                            }
+                            break;
+                        case 'diamond_option_key':
+                            nextVariant.diamond_option_key = value ? String(value) : null;
+                            break;
+                        case 'sku':
+                        case 'label':
+                            if (typeof value === 'string') {
+                                nextVariant[field] = value;
+                            }
+                            break;
+                        case 'inventory_quantity':
+                            if (value === '' || value === null) {
+                                nextVariant[field] = 0;
+                            } else if (typeof value === 'string') {
+                                const numVal = parseInt(value, 10);
+                                nextVariant[field] = isNaN(numVal) ? 0 : numVal;
+                            } else if (typeof value === 'number') {
+                                nextVariant[field] = value;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
 
-                return nextVariant;
-            });
+                    return nextVariant;
+                });
+            }
 
-            const draft: FormData = {
-                ...prev,
-                variants,
+            const draft: ProductFormData = {
+                ...watch(),
+                variants: updatedVariants.map(v => ({
+                    ...v,
+                    metals: v.metals ?? [],
+                    diamonds: v.diamonds ?? [],
+                })) as VariantForm[],
             };
 
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
-        });
+            const recalculated = recalculateVariants(draft);
+            setValue('variants', recalculated.map(v => ({
+                ...v,
+                metals: v.metals ?? [],
+                diamonds: v.diamonds ?? [],
+            })) as VariantForm[]);
     };
 
     const updateVariantMetadata = (index: number, changes: Record<string, any | null>) => {
@@ -2129,8 +1217,9 @@ export default function AdminProductEdit() {
         });
         
         // Also update form data (for backward compatibility)
-        setData((prev: FormData) => {
-            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
+        const currentVariants = watch('variants') || [];
+        if (currentVariants.length > 0) {
+            const updatedVariants = currentVariants.map((variant: any, idx: number) => {
                 if (idx !== index) {
                     return variant;
                 }
@@ -2151,15 +1240,21 @@ export default function AdminProductEdit() {
                 };
             });
 
-            const draft: FormData = {
-                ...prev,
-                variants,
-            };
+            const recalculated = recalculateVariants({
+                ...watch(),
+                variants: updatedVariants.map(v => ({
+                    ...v,
+                    metals: v.metals ?? [],
+                    diamonds: v.diamonds ?? [],
+                })) as VariantForm[],
+            });
 
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
-        });
+            setValue('variants', recalculated.map(v => ({
+                ...v,
+                metals: v.metals ?? [],
+                diamonds: v.diamonds ?? [],
+            })) as VariantForm[]);
+        }
     };
 
     const markDefault = (index: number) => {
@@ -2173,18 +1268,19 @@ export default function AdminProductEdit() {
         });
         
         // Also update form data (for backward compatibility)
-        setData((prev: FormData) => ({
-            ...prev,
-            variants: (prev.variants || []).map((variant: VariantForm, idx: number) => ({
-                ...variant,
-                is_default: idx === index,
-            })),
-        }));
+        const currentVariants = watch('variants') || [];
+        setValue('variants', currentVariants.map((variant: VariantForm, idx: number) => ({
+            ...variant,
+            is_default: idx === index,
+            metals: variant.metals ?? [],
+            diamonds: variant.diamonds ?? [],
+        })) as VariantForm[]);
     };
 
     const addDiamondToVariant = (variantIndex: number) => {
-        setData((prev: FormData) => {
-            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
+        const prev = data;
+        if (prev && prev.variants) {
+            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -2194,16 +1290,18 @@ export default function AdminProductEdit() {
                     diamonds: [...currentDiamonds, createEmptyDiamond()],
                 };
             });
-            return {
-                ...prev,
-                variants,
-            };
-        });
+            setValue('variants', variants.map(v => ({
+                ...v,
+                metals: v.metals ?? [],
+                diamonds: v.diamonds ?? [],
+            })) as VariantForm[]);
+        }
     };
 
     const removeDiamondFromVariant = (variantIndex: number, diamondIndex: number) => {
-        setData((prev: FormData) => {
-            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
+        const prev = data;
+        if (prev && prev.variants) {
+            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -2213,11 +1311,12 @@ export default function AdminProductEdit() {
                     diamonds: currentDiamonds.filter((_, dIdx: number) => dIdx !== diamondIndex),
                 };
             });
-            return {
-                ...prev,
-                variants,
-            };
-        });
+            setValue('variants', variants.map(v => ({
+                ...v,
+                metals: v.metals ?? [],
+                diamonds: v.diamonds ?? [],
+            })) as VariantForm[]);
+        }
     };
 
     const updateDiamondInVariant = (
@@ -2226,8 +1325,9 @@ export default function AdminProductEdit() {
         field: keyof VariantDiamondForm,
         value: string | number | '',
     ) => {
-        setData((prev: FormData) => {
-            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
+        const prev = data;
+        if (prev && prev.variants) {
+            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -2246,11 +1346,12 @@ export default function AdminProductEdit() {
                     diamonds: updatedDiamonds,
                 };
             });
-            return {
-                ...prev,
-                variants,
-            };
-        });
+            setValue('variants', variants.map(v => ({
+                ...v,
+                metals: v.metals ?? [],
+                diamonds: v.diamonds ?? [],
+            })) as VariantForm[]);
+        }
     };
 
     const updateMetalInVariant = (
@@ -2268,7 +1369,7 @@ export default function AdminProductEdit() {
             
             // If "Show all variants" is unchecked, weight is common for all variants with same metal
             // If "Show all variants" is checked, weight is separate for each variant
-            const shouldGroupUpdate = data.show_all_variants_by_size === false;
+            const shouldGroupUpdate = watch('show_all_variants_by_size') === false;
             
             if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
@@ -2331,58 +1432,54 @@ export default function AdminProductEdit() {
         });
         
         // Also update form data (for backward compatibility)
-        setData((prev: FormData) => {
-            const targetVariant = (prev.variants || [])[variantIndex];
-            if (!targetVariant) return prev;
+        const currentVariants = watch('variants') || [];
+        const targetVariant = currentVariants[variantIndex];
+        if (!targetVariant) return;
+        
+        // If "Show all variants" is unchecked, weight is common for all variants with same metal
+        // If "Show all variants" is checked, weight is separate for each variant
+        const shouldGroupUpdate = watch('show_all_variants_by_size') === false;
+        
+        let updatedVariants: VariantForm[];
+        
+        if (shouldGroupUpdate) {
+            const targetMetals = (targetVariant.metals || []).filter(
+                (m) => m.metal_id !== '' && m.metal_id !== null && (typeof m.metal_id === 'number' || (typeof m.metal_id === 'string' && !isNaN(Number(m.metal_id))))
+            );
+            const targetMetalsKey = targetMetals
+                .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                .sort()
+                .join('|');
             
-            // If "Show all variants" is unchecked, weight is common for all variants with same metal
-            // If "Show all variants" is checked, weight is separate for each variant
-            const shouldGroupUpdate = prev.show_all_variants_by_size === false;
-            
-            if (shouldGroupUpdate) {
-                const targetMetals = (targetVariant.metals || []).filter(
-                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+            updatedVariants = currentVariants.map((variant: VariantForm) => {
+                const variantMetals = (variant.metals || []).filter(
+                    (m) => m.metal_id !== '' && m.metal_id !== null && (typeof m.metal_id === 'number' || (typeof m.metal_id === 'string' && !isNaN(Number(m.metal_id))))
                 );
-                const targetMetalsKey = targetMetals
+                const variantMetalsKey = variantMetals
                     .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
                     .sort()
                     .join('|');
                 
-                const variants = (prev.variants || []).map((variant: VariantForm) => {
-                    const variantMetals = (variant.metals || []).filter(
-                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
-                    );
-                    const variantMetalsKey = variantMetals
-                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
-                        .sort()
-                        .join('|');
-                    
-                    if (variantMetalsKey === targetMetalsKey) {
-                        const currentMetals = variant.metals || [];
-                        const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
-                            if (mIdx !== metalIndex) {
-                                return metal;
-                            }
-                            return {
-                                ...metal,
-                                [field]: value,
-                            };
-                        });
+                if (variantMetalsKey === targetMetalsKey) {
+                    const currentMetals = variant.metals || [];
+                    const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                        if (mIdx !== metalIndex) {
+                            return metal;
+                        }
                         return {
-                            ...variant,
-                            metals: updatedMetals,
+                            ...metal,
+                            [field]: value,
                         };
-                    }
-                    return variant;
-                });
-                
-                return {
-                    ...prev,
-                    variants,
-                };
-            }
-            
-            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
+                    });
+                    return {
+                        ...variant,
+                        metals: updatedMetals,
+                    };
+                }
+                return variant;
+            });
+        } else {
+            updatedVariants = currentVariants.map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -2401,14 +1498,16 @@ export default function AdminProductEdit() {
                     metals: updatedMetals,
                 };
             });
-            return {
-                ...prev,
-                variants,
-            };
-        });
+        }
+        
+        setValue('variants', updatedVariants.map(v => ({
+            ...v,
+            metals: v.metals ?? [],
+            diamonds: v.diamonds ?? [],
+        })) as VariantForm[]);
     };
 
-    const generateVariantMatrixForData = (prev: FormData): FormData => {
+    const generateVariantMatrixForData = (prev: ProductFormData): ProductFormData => {
         return generateVariantMatrixUtil({
             formData: prev,
             parentCategories: parentCategories,
@@ -2420,7 +1519,7 @@ export default function AdminProductEdit() {
 
     const generateVariantMatrix = () => {
         // Validate that at least one metal is selected before generating matrix
-        const selectedMetals = data.selected_metals || [];
+        const selectedMetals = watch('selected_metals') || [];
         
         if (!Array.isArray(selectedMetals) || selectedMetals.length === 0) {
             setMetalSelectionError('Please select at least one metal before generating the variant matrix. Metals are required.');
@@ -2428,7 +1527,7 @@ export default function AdminProductEdit() {
         }
         
         // Validate that each selected metal has at least one purity and one tone selected
-        const metalConfigurations = data.metal_configurations || {};
+        const metalConfigurations = watch('metal_configurations') || {};
         const missingConfigurations: string[] = [];
         
         selectedMetals.forEach((metalId) => {
@@ -2503,102 +1602,30 @@ export default function AdminProductEdit() {
         
         // Generate matrix but store in separate state variable, not in form data
         // Use the current form data to generate variants based on current selections
-        const generatedData = generateVariantMatrixForData(data);
+        const currentFormData = watch();
+        const generatedData = generateVariantMatrixForData(currentFormData as ProductFormData);
         const generatedVariants = generatedData.variants || [];
         
         // Store the show_all_variants_by_size setting used for this generation
         // This ensures the display respects the setting at generation time, not the current checkbox state
-        setGeneratedShowAllVariantsBySize(data.show_all_variants_by_size);
+        setGeneratedShowAllVariantsBySize(watch('show_all_variants_by_size'));
         
         // Set the generated variants - generation already handles grouping based on show_all_variants_by_size
-        setGeneratedMatrixVariants([...generatedVariants]);
+        setGeneratedMatrixVariants(generatedVariants.map(v => ({
+            ...v,
+            metals: v.metals ?? [],
+            diamonds: v.diamonds ?? [],
+        })) as VariantForm[]);
     };
 
-    const submit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        // Client-side validation (Laravel-style) - validate before processing
+    const submit = async (productFormData: ProductFormData) => {
+        // Client-side validation is handled by Zod schema
+        // Additional validation for complex fields
         const validationErrors: Record<string, string> = {};
 
-        // Required fields validation
-        if (!data.sku || data.sku.trim() === '') {
-            validationErrors.sku = 'The SKU field is required.';
-        }
-
-        if (!data.name || data.name.trim() === '') {
-            validationErrors.name = 'The product name field is required.';
-        }
-
-        if (!data.producttype || data.producttype.trim() === '') {
-            validationErrors.producttype = 'The product type field is required.';
-        }
-
-        if (!data.titleline || data.titleline.trim() === '') {
-            validationErrors.titleline = 'The title line field is required.';
-        }
-
-        if (!data.collection || data.collection.trim() === '') {
-            validationErrors.collection = 'The collection field is required.';
-        }
-
-        if (!data.gender || data.gender.trim() === '') {
-            validationErrors.gender = 'The gender field is required.';
-        }
-
-        // Brand validation
-        if (!data.brand_id || data.brand_id === '' || data.brand_id === null || data.brand_id === undefined) {
-            validationErrors.brand_id = 'The brand field is required.';
-        } else {
-            const brandIdNum = Number(data.brand_id);
-            if (isNaN(brandIdNum) || brandIdNum <= 0) {
-                validationErrors.brand_id = 'The brand field is required.';
-            }
-        }
-
-        // Category validation
-        if (!data.category_id || data.category_id === '' || data.category_id === null || data.category_id === undefined) {
-            validationErrors.category_id = 'The category field is required.';
-        } else {
-            const categoryIdNum = Number(data.category_id);
-            if (isNaN(categoryIdNum) || categoryIdNum <= 0) {
-                validationErrors.category_id = 'The category field is required.';
-            }
-        }
-
-        // Making charge validation
-        const makingChargeTypesForValidation = data.making_charge_types || [];
-        if (!Array.isArray(makingChargeTypesForValidation) || makingChargeTypesForValidation.length === 0) {
-            validationErrors.making_charge_types = 'Please select at least one making charge type (Fixed Amount or Percentage).';
-        } else {
-            if (makingChargeTypesForValidation.includes('fixed')) {
-                const makingChargeValue = data.making_charge_amount;
-                if (makingChargeValue === '' || makingChargeValue === null || makingChargeValue === undefined) {
-                    validationErrors.making_charge_amount = 'The making charge amount field is required when Fixed Amount is selected.';
-                } else {
-                    const numValue = Number(makingChargeValue);
-                    if (isNaN(numValue) || numValue < 0) {
-                        validationErrors.making_charge_amount = 'The making charge amount must be a valid number.';
-                    }
-                }
-            }
-
-            if (makingChargeTypesForValidation.includes('percentage')) {
-                const makingChargePercentageValue = data.making_charge_percentage;
-                if (makingChargePercentageValue === '' || makingChargePercentageValue === null || makingChargePercentageValue === undefined) {
-                    validationErrors.making_charge_percentage = 'The making charge percentage field is required when Percentage is selected.';
-                } else {
-                    const numValue = Number(makingChargePercentageValue);
-                    if (isNaN(numValue) || numValue < 0 || numValue > 100) {
-                        validationErrors.making_charge_percentage = 'The making charge percentage must be a valid number between 0 and 100.';
-                    }
-                }
-            }
-        }
-
         // Variant validation
-        const hasMediaUploads = (data.media_uploads?.length ?? 0) > 0;
-        const formState = data as FormData;
-        const payload: any = { ...formState };
+        const hasMediaUploads = (productFormData.media_uploads?.length ?? 0) > 0;
+        const payload: any = { ...productFormData };
             
             // Get the current show_all_variants_by_size value from form state
             // Check both the current formState and the reactive data to ensure we get the latest checkbox value
@@ -2639,29 +1666,34 @@ export default function AdminProductEdit() {
             setErrors(validationErrors);
             setProcessing(false);
             
+            // Trigger React Hook Form validation to show errors and focus
+            await trigger();
+            
             // Scroll to first error field
-            const firstErrorField = Object.keys(validationErrors)[0];
-            if (firstErrorField) {
-                // Try to find the input field
-                const errorElement = document.querySelector(`input[name="${firstErrorField}"], select[name="${firstErrorField}"], textarea[name="${firstErrorField}"]`);
-                if (errorElement) {
-                    errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    (errorElement as HTMLElement).focus();
-                } else {
-                    // Fallback: scroll to first error message
-                    const errorMessage = document.querySelector('.text-rose-500');
-                    if (errorMessage) {
-                        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+                const firstErrorField = Object.keys(validationErrors)[0];
+                if (firstErrorField) {
+                    // Try to find the input field by name or id
+                    const errorElement = document.querySelector(`[name="${firstErrorField}"], #${firstErrorField}, input[id="${firstErrorField}"], select[id="${firstErrorField}"]`) as HTMLElement;
+                    if (errorElement) {
+                        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        errorElement.focus();
+                    } else {
+                        // Fallback: scroll to first error message
+                        const errorMessage = document.querySelector('.text-rose-500, .text-red-600') as HTMLElement;
+                        if (errorMessage) {
+                            errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                     }
                 }
-            }
+            }, 100);
             return;
         }
 
             // Handle media: include existing media (excluding removed) + new uploads
             if (product?.id && product?.media) {
                 // Get existing media that are NOT being removed
-                const removedMediaIds = formState.removed_media_ids ?? [];
+                const removedMediaIds = productFormData.removed_media_ids ?? [];
                 const existingMediaToKeep = product.media
                     .filter((mediaItem) => !removedMediaIds.includes(mediaItem.id))
                     .map((mediaItem) => ({
@@ -2679,37 +1711,37 @@ export default function AdminProductEdit() {
             }
             
             // Add new file uploads
-            if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
-                payload.media_uploads = formState.media_uploads;
+            if (productFormData.media_uploads && Array.isArray(productFormData.media_uploads) && productFormData.media_uploads.length > 0) {
+                payload.media_uploads = productFormData.media_uploads;
             }
-
-            payload.sku = formState.sku || '';
-            payload.name = formState.name || '';
-            payload.titleline = formState.titleline || null;
-            payload.collection = formState.collection || null;
-            payload.producttype = formState.producttype || null;
-            payload.gender = formState.gender || null;
-            payload.description = formState.description || '';
+            
+            payload.sku = productFormData.sku || '';
+            payload.name = productFormData.name || '';
+            payload.titleline = productFormData.titleline || null;
+            payload.collection = productFormData.collection || null;
+            payload.producttype = productFormData.producttype || null;
+            payload.gender = productFormData.gender || null;
+            payload.description = productFormData.description || '';
 
             // Set brand_id (already validated above)
-            const brandIdValue = formState.brand_id;
+            const brandIdValue = productFormData.brand_id;
             const brandIdNum = Number(brandIdValue);
             payload.brand_id = brandIdNum;
 
             // Set category_id (already validated above)
-            const categoryIdValue = formState.category_id;
+            const categoryIdValue = productFormData.category_id;
             const categoryIdNum = Number(categoryIdValue);
             payload.category_id = categoryIdNum;
 
             // Handle style_ids (multi-select) - must be array
-            const styleIds = formState.style_ids || [];
+            const styleIds = productFormData.style_ids || [];
             payload.style_ids = Array.isArray(styleIds) ? styleIds : [];
 
             // Handle making_charge_types (must be array) - already validated above
-            const makingChargeTypes = formState.making_charge_types || [];
+            const makingChargeTypes = productFormData.making_charge_types || [];
 
             if (makingChargeTypes.includes('fixed')) {
-                const makingChargeValue = formState.making_charge_amount;
+                const makingChargeValue = productFormData.making_charge_amount;
                 if (makingChargeValue === '' || makingChargeValue === null || makingChargeValue === undefined) {
                     payload.making_charge_amount = 0;
                 } else {
@@ -2721,7 +1753,7 @@ export default function AdminProductEdit() {
             }
 
             if (makingChargeTypes.includes('percentage')) {
-                const makingChargePercentageValue = formState.making_charge_percentage;
+                const makingChargePercentageValue = productFormData.making_charge_percentage;
                 if (makingChargePercentageValue === '' || makingChargePercentageValue === null || makingChargePercentageValue === undefined) {
                     payload.making_charge_percentage = null;
                 } else {
@@ -2740,7 +1772,7 @@ export default function AdminProductEdit() {
                 return typeof value === 'number' ? value : Number(value);
             };
 
-            payload.is_active = formState.is_active ?? true;
+            payload.is_active = productFormData.is_active ?? true;
 
             // Prepare metadata object with show_all_variants_by_size
             // Always set show_all_variants_by_size in metadata, using the current value from form data
@@ -2751,11 +1783,11 @@ export default function AdminProductEdit() {
                 payload.metadata = metadata;
             
             // Handle catalog_ids (must be array)
-            const catalogIds = formState.catalog_ids || [];
+            const catalogIds = productFormData.catalog_ids || [];
             payload.catalog_ids = Array.isArray(catalogIds) ? catalogIds : [];
             
             // Handle subcategory_ids (must be array)
-            const subcategoryIds = formState.subcategory_ids || [];
+            const subcategoryIds = productFormData.subcategory_ids || [];
             payload.subcategory_ids = Array.isArray(subcategoryIds) ? subcategoryIds : [];
             
             if (!payload.media_uploads || (Array.isArray(payload.media_uploads) && payload.media_uploads.length === 0)) {
@@ -2774,7 +1806,7 @@ export default function AdminProductEdit() {
 
             // Use variants for submission (from generatedMatrixVariants if available, otherwise newly generated)
             if (variantsToUse && Array.isArray(variantsToUse) && variantsToUse.length > 0) {
-                const diamondSelections = formState.diamond_selections || [];
+                const diamondSelections = productFormData.diamond_selections || [];
                 
                 // Validate that each variant has at least one metal (required)
                 const variantsWithoutMetals: string[] = [];
@@ -2825,7 +1857,7 @@ export default function AdminProductEdit() {
                 }));
                 
                 // If "Show all variants" is unchecked, apply weight and inventory_quantity to all variants with same metal
-                if (formState.show_all_variants_by_size === false) {
+                if (productFormData.show_all_variants_by_size === false) {
                     // Group variants by metal configuration
                     const variantGroups = new Map<string, any[]>();
                     
@@ -3114,8 +2146,8 @@ export default function AdminProductEdit() {
             delete payload.show_all_variants_by_size; // This is in metadata, not top-level
             delete payload._method;
 
-        // Create FormData with proper type conversion
-        const formData = new FormData();
+        // Create browser FormData with proper type conversion
+        const browserFormData = new FormData();
         
         // Helper to append values with proper type conversion
         const appendToFormData = (key: string, value: any) => {
@@ -3128,9 +2160,9 @@ export default function AdminProductEdit() {
                 if (isRequired) {
                     // For required fields, send empty string or default value
                     if (key === 'variants') {
-                        formData.append(key, JSON.stringify([]));
+                        browserFormData.append(key, JSON.stringify([]));
                     } else {
-                        formData.append(key, '');
+                        browserFormData.append(key, '');
                     }
                 }
                 return; // Skip null/undefined for optional fields
@@ -3140,24 +2172,24 @@ export default function AdminProductEdit() {
                 // Files are handled separately
                 value.forEach((file) => {
                     if (file instanceof File) {
-                        formData.append('media_uploads', file);
+                        browserFormData.append('media_uploads', file);
                     }
                 });
             } else if (Array.isArray(value)) {
                 // Arrays need to be JSON stringified for multipart/form-data
-                formData.append(key, JSON.stringify(value));
+                browserFormData.append(key, JSON.stringify(value));
             } else if (typeof value === 'object' && value !== null) {
                 // Objects need to be JSON stringified
-                formData.append(key, JSON.stringify(value));
+                browserFormData.append(key, JSON.stringify(value));
             } else if (typeof value === 'boolean') {
                 // Booleans should be sent as strings 'true' or 'false'
-                formData.append(key, value ? 'true' : 'false');
+                browserFormData.append(key, value ? 'true' : 'false');
             } else if (typeof value === 'number') {
                 // Numbers should be sent as strings
-                formData.append(key, String(value));
+                browserFormData.append(key, String(value));
             } else {
                 // Strings and other primitives
-                formData.append(key, String(value));
+                browserFormData.append(key, String(value));
             }
         };
         
@@ -3223,7 +2255,7 @@ export default function AdminProductEdit() {
         try {
             if (product?.id) {
                 // Update existing product
-                await adminService.updateProduct(product.id, formData);
+                await adminService.updateProduct(product.id, browserFormData);
                 toastSuccess('Product updated successfully!');
                 
                 // Refresh the page data to show updated product (including removed images)
@@ -3246,7 +2278,7 @@ export default function AdminProductEdit() {
                 }
             } else {
                 // Create new product
-                const response = await adminService.createProduct(formData);
+                const response = await adminService.createProduct(browserFormData);
                 const newProductId = response.data.id;
                 toastSuccess('Product created successfully!');
                 router.push(`/admin/products/${newProductId}/edit`);
@@ -3300,10 +2332,10 @@ export default function AdminProductEdit() {
 
 
     const toggleRemoveMedia = (id: number) => {
-        const current = data.removed_media_ids ?? [];
+        const current = watch('removed_media_ids') ?? [];
         const exists = current.includes(id);
-        const updated = exists ? current.filter((mediaId) => mediaId !== id) : [...current, id];
-        setDataField('removed_media_ids', updated);
+        const updated = exists ? current.filter((mediaId: number) => mediaId !== id) : [...current, id];
+        setValue('removed_media_ids', updated);
     };
 
     const handleMediaSelect = (event: ChangeEvent<HTMLInputElement>) => {
@@ -3313,12 +2345,12 @@ export default function AdminProductEdit() {
         }
 
         // Get existing files to avoid duplicates
-        const existingFiles = data.media_uploads ?? [];
+        const existingFiles = watch('media_uploads') ?? [];
         
         // Filter out duplicates based on file name and size
         const newFiles = selectedFiles.filter((newFile) => {
             return !existingFiles.some(
-                (existingFile) =>
+                (existingFile: File) =>
                     existingFile.name === newFile.name &&
                     existingFile.size === newFile.size
             );
@@ -3332,1040 +2364,75 @@ export default function AdminProductEdit() {
         // Add new files to existing media_uploads array
         const updatedFiles = [...existingFiles, ...newFiles];
         
-        setDataField('media_uploads', updatedFiles);
+        setValue('media_uploads', updatedFiles);
         
         // Reset input to allow selecting the same files again if needed
         event.target.value = '';
     };
 
     const removePendingUpload = (index: number) => {
-        setDataField(
+        setValue(
             'media_uploads',
-            (data.media_uploads ?? []).filter((_, uploadIndex) => uploadIndex !== index),
+            (watch('media_uploads') ?? []).filter((_: File, uploadIndex: number) => uploadIndex !== index),
         );
     };
 
     const isMarkedForRemoval = (id: number) => {
-        return (data.removed_media_ids ?? []).includes(id);
+        return (watch('removed_media_ids') ?? []).includes(id);
     };
 
     return (
         <>
             <Head title={product?.id ? `Edit ${product.name}` : 'New Product'} />
 
-            <form onSubmit={submit} className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-10 lg:px-8">
-                <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10">
-                    <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 sm:pb-6 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
-                                {product?.id ? 'Update product' : 'Create product'}
-                            </h1>
-                            <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                                Define product master information and atelier references.
-                            </p>
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 sm:px-5 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {processing ? 'Saving…' : product?.id ? 'Save changes' : 'Create product'}
-                        </button>
-                    </div>
-
-                    <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-6">
-                        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-                            <div className="space-y-3 sm:space-y-4">
-                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                    <span>SKU *</span>
-                                    <input
-                                        type="text"
-                                        value={data.sku}
-                                        onChange={(event) => setDataField('sku', event.target.value)}
-                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                            errors.sku 
-                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                        }`}
-                                        placeholder="Enter SKU"
-                                    />
-                                    {errors.sku && <span className="text-xs text-rose-500">{errors.sku}</span>}
-                                </label>
-                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                    <span>Product name *</span>
-                                    <input
-                                        type="text"
-                                        value={data.name}
-                                        onChange={(event) => setDataField('name', event.target.value)}
-                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                            errors.name 
-                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                        }`}
-                                        placeholder="Enter product name"
-                                    />
-                                    {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
-                                </label>
-                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                    <span>Product Type *</span>
-                                    <input
-                                        type="text"
-                                        value={data.producttype}
-                                        onChange={(event) => setDataField('producttype', event.target.value)}
-                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                            errors.producttype 
-                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                        }`}
-                                        placeholder="Enter product type"
-                                    />
-                                    {errors.producttype && <span className="text-xs text-rose-500">{errors.producttype}</span>}
-                                </label>
-                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                    <span>Title Line *</span>
-                                    <input
-                                        type="text"
-                                        value={data.titleline}
-                                        onChange={(event) => setDataField('titleline', event.target.value)}
-                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                            errors.titleline 
-                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                        }`}
-                                        placeholder="Enter product title line"
-                                    />
-                                    {errors.titleline && <span className="text-xs text-rose-500">{errors.titleline}</span>}
-                                </label>
-                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                    <span>Collection *</span>
-                                    <input
-                                        type="text"
-                                        value={data.collection}
-                                        onChange={(event) => setDataField('collection', event.target.value)}
-                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                            errors.collection 
-                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                        }`}
-                                        placeholder="Enter collection name"
-                                    />
-                                    {errors.collection && <span className="text-xs text-rose-500">{errors.collection}</span>}
-                                </label>
-
-                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                    <span>Gender *</span>
-                                    <select
-                                        value={data.gender}
-                                        onChange={(event) => setDataField('gender', event.target.value)}
-                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                            errors.gender 
-                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                        }`}
-                                    >
-                                        <option value="">Select gender</option>
-                                        <option value="Men">Men</option>
-                                        <option value="Women">Women</option>
-                                        <option value="Unisex">Unisex</option>
-                                        <option value="Kids">Kids</option>
-                                    </select>
-                                    {errors.gender && <span className="text-xs text-rose-500">{errors.gender}</span>}
-                                </label>
-                            </div>
-
-                            <div className="space-y-4">
-                            <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Brand *</span>
-                                    <select
-                                        value={data.brand_id}
-                                        onChange={(event) => setDataField('brand_id', event.target.value)}
-                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                            errors.brand_id 
-                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                        }`}
-                                    >
-                                        <option value="">Select brand</option>
-                                        {Object.entries(brands).map(([id, name]) => (
-                                            <option key={id} value={id}>
-                                                {name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {errors.brand_id && <span className="text-xs text-rose-500">{errors.brand_id}</span>}
-                                </label>
-                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                    <span>Category *</span>
-                                    <select
-                                        value={data.category_id}
-                                        onChange={(event) => {
-                                            setDataField('category_id', event.target.value);
-                                            // Clear style_ids and selected_sizes when category changes
-                                            // User must explicitly select sizes/styles for the new category
-                                            setDataField('style_ids', []);
-                                            setDataField('selected_sizes', []);
-                                            setDataField('all_sizes_available', undefined);
-                                        }}
-                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                            errors.category_id 
-                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                        }`}
-                                    >
-                                        <option value="">Select category</option>
-                                        {(parentCategories || []).map((category) => (
-                                            <option key={category.id} value={category.id}>
-                                                {category.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {errors.category_id && <span className="text-xs text-rose-500">{errors.category_id}</span>}
-                                </label>
-                                <SubcategoryMultiSelect
-                                    subcategories={subcategories || []}
-                                    selectedIds={Array.isArray(data.subcategory_ids) ? data.subcategory_ids : []}
-                                    parentCategoryId={data.category_id === '' || data.category_id === null || data.category_id === undefined ? '' : (isNaN(Number(data.category_id)) ? '' : Number(data.category_id))}
-                                    onChange={(selectedIds) => {
-                                        setDataField('subcategory_ids', selectedIds);
-                                        // Clear error when user selects
-                                        if (errors.subcategory_ids) {
-                                            setErrors((prev) => {
-                                                const newErrors = { ...prev };
-                                                delete newErrors.subcategory_ids;
-                                                return newErrors;
-                                            });
-                                        }
-                                    }}
-                                    error={Array.isArray(errors.subcategory_ids) ? errors.subcategory_ids[0] : errors.subcategory_ids}
-                                />
-                                
-                                {/* Style multi-select - appears after category selection */}
-                                {data.category_id && data.category_id !== '' && (() => {
-                                    const selectedCategoryId = Number(data.category_id);
-                                    const selectedCategory = parentCategories.find(cat => cat.id === selectedCategoryId);
-                                    
-                                    // Debug: Log to verify data
-                                    console.log('Style section - Selected category ID:', selectedCategoryId);
-                                    console.log('Style section - Selected category:', selectedCategory);
-                                    console.log('Style section - All parentCategories:', parentCategories.map(c => ({ id: c.id, name: c.name, stylesCount: c.styles?.length || 0 })));
-                                    
-                                    // Ensure styles array exists and is properly formatted
-                                    const availableStyles = (selectedCategory?.styles && Array.isArray(selectedCategory.styles) && selectedCategory.styles.length > 0)
-                                        ? selectedCategory.styles
-                                        : [];
-                                    
-                                    console.log('Style section - Available styles:', availableStyles);
-                                    
-                                    // Only render if category has styles available
-                                    if (availableStyles.length === 0) {
-                                        console.log('Style section - No styles available, returning null');
-                                        return null;
-                                    }
-                                    
-                                    return (
-                                        <StyleMultiSelect
-                                            styles={availableStyles}
-                                            selectedIds={Array.isArray(data.style_ids) ? data.style_ids : []}
-                                            onChange={(selectedIds) => {
-                                                setDataField('style_ids', selectedIds);
-                                                // Clear error when user selects
-                                                if (errors.style_ids) {
-                                                    setErrors((prev) => {
-                                                        const newErrors = { ...prev };
-                                                        delete newErrors.style_ids;
-                                                        return newErrors;
-                                                    });
-                                                }
-                                            }}
-                                            error={Array.isArray(errors.style_ids) ? errors.style_ids[0] : errors.style_ids}
-                                        />
-                                    );
-                                })()}
-                                
-                                 <CatalogMultiSelect
-                                    catalogs={catalogs}
-                                    selectedIds={Array.isArray(data.catalog_ids) ? data.catalog_ids : []}
-                                    onChange={(selectedIds) => {
-                                        setDataField('catalog_ids', selectedIds);
-                                        // Clear error when user selects
-                                        if (errors.catalog_ids) {
-                                            setErrors((prev) => {
-                                                const newErrors = { ...prev };
-                                                delete newErrors.catalog_ids;
-                                                return newErrors;
-                                            });
-                                        }
-                                    }}
-                                    error={Array.isArray(errors.catalog_ids) ? errors.catalog_ids[0] : errors.catalog_ids}
-                                />
-
-                                <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                    <span className="mb-2 block text-xs sm:text-sm">Making Charge *</span>
-                                    <div className="flex gap-6">
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={data.making_charge_types?.includes('fixed') ?? false}
-                                                onChange={(e) => {
-                                                    const currentTypes = data.making_charge_types || [];
-                                                    if (e.target.checked) {
-                                                        setDataField('making_charge_types', [...currentTypes, 'fixed']);
-                                                    } else {
-                                                        setDataField('making_charge_types', currentTypes.filter(t => t !== 'fixed'));
-                                                    }
-                                                }}
-                                                className="h-5 w-5 rounded border-slate-300 text-elvee-blue focus:ring-2 focus:ring-elvee-blue focus:ring-offset-0"
-                                            />
-                                            <span className="text-xs sm:text-sm font-medium text-slate-700">Fixed Amount</span>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={data.making_charge_types?.includes('percentage') ?? false}
-                                                onChange={(e) => {
-                                                    const currentTypes = data.making_charge_types || [];
-                                                    if (e.target.checked) {
-                                                        setDataField('making_charge_types', [...currentTypes, 'percentage']);
-                                                    } else {
-                                                        setDataField('making_charge_types', currentTypes.filter(t => t !== 'percentage'));
-                                                    }
-                                                }}
-                                                className="h-5 w-5 rounded border-slate-300 text-elvee-blue focus:ring-2 focus:ring-elvee-blue focus:ring-offset-0"
-                                            />
-                                            <span className="text-xs sm:text-sm font-medium text-slate-700">Percentage</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                {(errors.making_charge_types && (!data.making_charge_types || data.making_charge_types.length === 0)) && (
-                                    <div className="mt-2">
-                                        <span className="block text-xs text-rose-500">{errors.making_charge_types}</span>
-                                    </div>
-                                )}
-                                {(data.making_charge_types?.includes('fixed') ?? false) && (
-                                    <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                        <span className="text-xs sm:text-sm">Making Charge (₹) {(data.making_charge_types?.includes('percentage') ?? false) ? '' : '*'}</span>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            value={data.making_charge_amount}
-                                            onChange={(event) => setDataField('making_charge_amount', event.target.value)}
-                                            className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                                errors.making_charge_amount 
-                                                    ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                    : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                            }`}
-                                            placeholder="Enter fixed making charge"
-                                        />
-                                        {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
-                                    </label>
-                                )}
-                                {(data.making_charge_types?.includes('percentage') ?? false) && (
-                                    <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                        <span className="text-xs sm:text-sm">Making Charge Percentage (%) {(data.making_charge_types?.includes('fixed') ?? false) ? '' : '*'}</span>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            max="100"
-                                            value={data.making_charge_percentage}
-                                            onChange={(event) => setDataField('making_charge_percentage', event.target.value)}
-                                            className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
-                                                errors.making_charge_percentage 
-                                                    ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
-                                                    : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
-                                            }`}
-                                            placeholder="Enter percentage (e.g., 10 for 10%)"
-                                        />
-                                        <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>
-                                        {errors.making_charge_percentage && <span className="text-xs text-rose-500">{errors.making_charge_percentage}</span>}
-                                    </label>
-                                )}
-                                {(errors.making_charge_types && data.making_charge_types && data.making_charge_types.length > 0) && (
-                                    <div className="mt-2">
-                                        <span className="block text-xs text-rose-500">{errors.making_charge_types}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10">
-                    <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:pb-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                            <h2 className="text-lg sm:text-xl font-semibold text-slate-900">Product description</h2>
-                            <p className="text-xs sm:text-sm text-slate-500">
-                                Provide merchandising copy, craftsmanship details, and any atelier notes for this SKU.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="mt-6">
-                        <RichTextEditor
-                            value={localDescription}
-                            onChange={handleDescriptionChange}
-                            className={`overflow-hidden rounded-2xl sm:rounded-3xl border ${
-                                errors.description ? 'border-rose-300' : 'border-slate-200'
-                            }`}
-                            placeholder="Detail the design notes, materials, finish, and atelier craftsmanship."
+            <form onSubmit={handleSubmit(submit)} className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-10 lg:px-8">
+                <div className="space-y-4 sm:space-y-6">
+                        <BasicInfoSection
+                            control={control}
+                            watch={watch}
+                            setValue={setValue}
+                            clearErrors={clearErrors}
+                            errors={errors}
+                            formErrors={formErrors}
+                            brands={brands}
+                            parentCategories={parentCategories}
+                            subcategories={subcategories || []}
+                            catalogs={catalogs}
+                            productId={product?.id}
+                            processing={processing}
                         />
-                        {errors.description && <span className="mt-2 block text-xs text-rose-500">{errors.description}</span>}
-                    </div>
-                </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10">
-                <div className="flex flex-col gap-3 sm:gap-4 border-b border-slate-100 pb-3 sm:pb-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <h2 className="text-lg sm:text-xl font-semibold text-slate-900">Product media</h2>
-                        <p className="text-xs sm:text-sm text-slate-500">
-                            Upload product images or videos for catalogue displays. You can also remove outdated media assets.
-                        </p>
-                    </div>
-                </div>
+                        <ProductDescriptionSection
+                            description={localDescription}
+                            onDescriptionChange={handleDescriptionChange}
+                            error={typeof errors.description === 'string' 
+                                ? errors.description 
+                                : errors.description?.message}
+                        />
 
-                <div className="mt-6 space-y-6">
-                    <div>
-                        <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Current media</h3>
-                        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {currentMedia.length > 0 ? (
-                                currentMedia.map((mediaItem) => (
-                                        <div
-                                            key={mediaItem.id}
-                                            className={`relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm transition ${
-                                                isMarkedForRemoval(mediaItem.id) ? 'opacity-50 ring-2 ring-rose-200' : ''
-                                            }`}
-                                        >
-                                            {mediaItem.type === 'video' ? (
-                                                <video
-                                                    src={getMediaUrl(mediaItem.url)}
-                                                    className="h-48 w-full rounded-t-3xl bg-black object-cover"
-                                                    controls
-                                                    onError={(e) => {
-                                                        console.error('Video load error:', mediaItem.url);
-                                                        (e.target as HTMLVideoElement).style.display = 'none';
-                                                    }}
-                                                >
-                                                    Your browser does not support the video tag.
-                                                </video>
-                                            ) : (
-                                                <img
-                                                    src={getMediaUrl(mediaItem.url)}
-                                                    alt="Product media"
-                                                    className="h-48 w-full rounded-t-3xl object-cover"
-                                                    onError={(e) => {
-                                                        console.error('Image load error:', mediaItem.url);
-                                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage not found%3C/text%3E%3C/svg%3E';
-                                                    }}
-                                                />
-                                            )}
-                                            <div className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 text-xs text-slate-500">
-                                                <span className="rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold text-slate-700">
-                                                    {mediaItem.type.toUpperCase()}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleRemoveMedia(mediaItem.id)}
-                                                    className="text-rose-500 transition hover:text-rose-600"
-                                                >
-                                                    {isMarkedForRemoval(mediaItem.id) ? 'Undo removal' : 'Remove'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                            ) : (
-                                <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-                                    No media uploaded yet.
-                                </p>
-                            )}
-                        </div>
-                    </div>
+                        <MediaSection
+                            watch={watch}
+                            setValue={setValue}
+                            product={product}
+                        />
 
-                    <div>
-                        <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Upload new files</h3>
-                        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-2 sm:gap-3 rounded-2xl sm:rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 sm:px-6 sm:py-10 text-center text-slate-500 transition hover:border-slate-400 hover:bg-slate-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 014-4h10a4 4 0 014 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l5-5m0 0l5 5m-5-5v12" />
-                            </svg>
-                            <div>
-                                <p className="text-xs sm:text-sm font-semibold text-slate-700">Click to upload</p>
-                                <p className="mt-1 text-[10px] sm:text-xs text-slate-400">JPEG, PNG, WebP, MP4 up to 50MB each. You can select multiple files at once.</p>
-                            </div>
-                            <input
-                                type="file"
-                                multiple
-                                accept="image/*,video/*"
-                                onChange={handleMediaSelect}
-                                className="hidden"
-                                id="media-upload-input"
-                            />
-                        </label>
-                        {mediaErrors.length > 0 && (
-                            <ul className="mt-3 space-y-1">
-                                {mediaErrors.map((message, index) => (
-                                    <li key={`${index}-${message}`} className="text-xs text-rose-500">
-                                        {message}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                        {(data.media_uploads ?? []).length > 0 && (
-                            <ul className="mt-4 space-y-2">
-                                {(data.media_uploads ?? []).map((file, index) => (
-                                    <li
-                                        key={`${file.name}-${index}`}
-                                        className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-600"
-                                    >
-                                        <span className="truncate">{file.name}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => removePendingUpload(index)}
-                                            className="text-rose-500 transition hover:text-rose-600"
-                                        >
-                                            Remove
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                </div>
-            </div>
+                        <VariantConfigurationSection
+                            watch={watch}
+                            setValue={setValue}
+                            errors={errors}
+                            formErrors={formErrors}
+                            parentCategories={parentCategories}
+                            product={product}
+                            metals={metals}
+                            metalPurities={metalPurities}
+                            metalTones={metalTones}
+                            diamonds={diamonds}
+                            onGenerateMatrix={generateVariantMatrix}
+                            metalSelectionError={metalSelectionError}
+                            setMetalSelectionError={setMetalSelectionError}
+                        />
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10">
-                    <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:pb-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                            <h2 className="text-lg sm:text-xl font-semibold text-slate-900">Variant configuration</h2>
-                            <p className="text-xs sm:text-sm text-slate-500">
-                                Decide whether this product uses a single price or multiple combinations across metals and diamonds.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="mt-6 space-y-6">
-                            {/* <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                <h3 className="text-sm font-semibold text-slate-900 mb-2">Variant Configuration Options</h3>
-                                <p className="text-xs text-slate-600 mb-4">
-                                    Use the configuration buttons in the variant table below to add metals (with purity and tone) and diamonds to each variant.
-                                </p>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 13h8l-4-4m0 8l4-4" />
-                                        </svg>
-                                        <span className="text-slate-700">Configure Metals</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                        </svg>
-                                        <span className="text-slate-700">Configure Diamonds</span>
-                                    </div>
-                                </div>
-                            </div> */}
-
-                            {(() => {
-                                const categoryId = data.category_id ? Number(data.category_id) : null;
-                                const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
-                                
-                                // Debug: Log to verify data
-                                console.log('Sizes section - Selected category ID:', categoryId);
-                                console.log('Sizes section - Selected category:', selectedCategory);
-                                console.log('Sizes section - All parentCategories:', parentCategories.map(c => ({ id: c.id, name: c.name, sizesCount: c.sizes?.length || 0 })));
-                                
-                                // Get sizes from selected category (from parentCategories) or from product category
-                                const categorySizes = (() => {
-                                    if (selectedCategory && 'sizes' in selectedCategory && Array.isArray(selectedCategory.sizes) && selectedCategory.sizes.length > 0) {
-                                        console.log('Sizes section - Using sizes from selectedCategory:', selectedCategory.sizes);
-                                        return selectedCategory.sizes;
-                                    }
-                                    if (product?.category?.id === categoryId && product.category.sizes && Array.isArray(product.category.sizes) && product.category.sizes.length > 0) {
-                                        console.log('Sizes section - Using sizes from product.category:', product.category.sizes);
-                                        return product.category.sizes;
-                                    }
-                                    console.log('Sizes section - No sizes found');
-                                    return [];
-                                })();
-                                
-                                const categoryHasSizes = categorySizes.length > 0;
-                                
-                                console.log('Sizes section - categoryHasSizes:', categoryHasSizes, 'categorySizes.length:', categorySizes.length);
-                                
-                                if (!categoryHasSizes) {
-                                    return null;
-                                }
-                                
-                                const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
-                                const selectedSizes = data.selected_sizes || [];
-                                const allSizesSelected = selectedSizes.length > 0 && allCategorySizeIds.length > 0 && 
-                                    allCategorySizeIds.every((id: number) => selectedSizes.includes(id));
-                                
-                                return (
-                                    <div className="space-y-3 sm:space-y-4 rounded-2xl border border-slate-200 p-3 sm:p-4">
-                                        <div>
-                                            <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Sizes</h3>
-                                            <p className="text-xs text-slate-500">
-                                                This category "{selectedCategory?.name || product?.category?.name}" has {categorySizes.length} sizes available. 
-                                                Select sizes to include in your product variants.
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                            <div className="mb-4 flex items-center justify-between">
-                                                <h4 className="text-xs sm:text-sm font-semibold text-slate-900">Select Sizes</h4>
-                                                {/* {selectedSizes.length > 0 && (
-                                                    <span className="text-xs font-medium text-sky-600">
-                                                        {selectedSizes.length} size{selectedSizes.length !== 1 ? 's' : ''} selected
-                                                    </span>
-                                                )} */}
-                                            </div>
-                                            
-                                            <div className="mb-3 sm:mb-4">
-                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start sm:justify-end gap-2 sm:gap-4">
-                                                    <label className="inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:text-sky-600 transition-colors">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={data.show_all_variants_by_size === true}
-                                                            onChange={(e) => {
-                                                                setData((prev: FormData) => ({
-                                                                    ...prev,
-                                                                    show_all_variants_by_size: e.target.checked ? true : false,
-                                                                }));
-                                                            }}
-                                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer flex-shrink-0"
-                                                        />
-                                                        <span className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
-                                                            Show all variants
-                                                        </span>
-                                                    </label>
-                                                    <label className="inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:text-sky-600 transition-colors">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={allSizesSelected}
-                                                            onChange={(e) => {
-                                                                setData((prev: FormData) => {
-                                                                    const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
-                                                                    const currentSizes = prev.selected_sizes || [];
-                                                                    const allSelected = currentSizes.length > 0 && allCategorySizeIds.every((id: number) => currentSizes.includes(id));
-                                                                    
-                                                                    const newSizes = e.target.checked ? allCategorySizeIds : [];
-                                                                    const newAllSelected = newSizes.length > 0 && allCategorySizeIds.every((id: number) => newSizes.includes(id));
-                                                                    
-                                                                    return {
-                                                                        ...prev,
-                                                                        selected_sizes: newSizes,
-                                                                        all_sizes_available: newAllSelected ? true : undefined,
-                                                                        show_all_variants_by_size: prev.show_all_variants_by_size === undefined ? true : prev.show_all_variants_by_size,
-                                                                    };
-                                                                });
-                                                            }}
-                                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer flex-shrink-0"
-                                                        />
-                                                        <span className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
-                                                            Select all sizes
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="flex flex-wrap gap-2">
-                                                {categorySizes.map((size: any) => {
-                                                    const sizeId = typeof size.id === 'number' ? size.id : Number(size.id);
-                                                    const isSizeSelected = selectedSizes.includes(sizeId);
-                                                    return (
-                                                        <label
-                                                            key={sizeId || size.name}
-                                                            className={`
-                                                                inline-flex items-center justify-center rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer
-                                                                ${isSizeSelected
-                                                                    ? 'bg-sky-600 text-white shadow-sm'
-                                                                    : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                                }
-                                                            `}
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isSizeSelected}
-                                                                onChange={(e) => {
-                                                                    setData((prev: FormData) => {
-                                                                        const currentSizes = prev.selected_sizes || [];
-                                                                        const newSizes = e.target.checked
-                                                                            ? [...currentSizes, sizeId]
-                                                                            : currentSizes.filter(id => id !== sizeId);
-                                                                        const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
-                                                                        const allSelected = newSizes.length > 0 && allCategorySizeIds.every((id: number) => newSizes.includes(id));
-                                                                        
-                                                                        return {
-                                                                            ...prev,
-                                                                            selected_sizes: newSizes,
-                                                                            all_sizes_available: allSelected ? true : undefined,
-                                                                            show_all_variants_by_size: prev.show_all_variants_by_size === undefined ? true : prev.show_all_variants_by_size,
-                                                                        };
-                                                                    });
-                                                                }}
-                                                                className={`mr-2 h-4 w-4 rounded border-2 ${
-                                                                    isSizeSelected
-                                                                        ? 'border-white bg-white text-sky-600'
-                                                                        : 'border-slate-300 bg-white text-slate-700'
-                                                                } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                            />
-                                                            {size.name || size.value}
-                                                        </label>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-
-                            <div className="space-y-3 sm:space-y-4 rounded-2xl border border-slate-200 p-3 sm:p-4">
-                                <div>
-                                    <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Metals</h3>
-                                    <p className="text-xs text-slate-500">Select metals that can be used in your product variants.</p>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2 sm:gap-3">
-                                    {metals.map((metal) => {
-                                        const isSelected = (data.selected_metals || []).includes(metal.id);
-                                        return (
-                                            <label
-                                                key={metal.id}
-                                                className={`
-                                                    inline-flex items-center justify-center rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer
-                                                    ${isSelected
-                                                        ? 'bg-sky-600 text-white shadow-sm'
-                                                        : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                    }
-                                                `}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    onChange={(e) => {
-                                                        setData((prev: FormData) => {
-                                                            const currentSelected = prev.selected_metals || [];
-                                                            const newSelected = e.target.checked
-                                                                ? [...currentSelected, metal.id]
-                                                                : currentSelected.filter(id => id !== metal.id);
-
-                                                            const newConfig = { ...(prev.metal_configurations || {}) };
-                                                            if (!e.target.checked) {
-                                                                delete newConfig[metal.id];
-                                                            } else if (!newConfig[metal.id]) {
-                                                                newConfig[metal.id] = { purities: [], tones: [] };
-                                                            }
-
-                                                            return {
-                                                                ...prev,
-                                                                selected_metals: newSelected,
-                                                                metal_configurations: newConfig,
-                                                            };
-                                                        });
-                                                        
-                                                        // Clear error when metal is selected
-                                                        if (e.target.checked && metalSelectionError) {
-                                                            setMetalSelectionError(null);
-                                                        }
-                                                    }}
-                                                    className={`mr-2 h-4 w-4 rounded border-2 ${
-                                                        isSelected
-                                                            ? 'border-white bg-white text-sky-600'
-                                                            : 'border-slate-300 bg-white text-slate-700'
-                                                    } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                />
-                                                {metal.name}
-                                            </label>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className="space-y-4">
-                                    {metals.map((metal) => {
-                                        const isSelected = (data.selected_metals || []).includes(metal.id);
-                                        if (!isSelected) return null;
-
-                                        const metalConfig = (data.metal_configurations || {})[metal.id] || { purities: [], tones: [] };
-                                        // Filter to only show active purities and tones
-                                        const availablePurities = metalPurities.filter(p => p.metal_id === metal.id && (p.is_active !== false));
-                                        const availableTones = metalTones.filter(t => t.metal_id === metal.id && (t.is_active !== false));
-
-                                        const puritiesCount = metalConfig.purities.length > 0 ? metalConfig.purities.length : (availablePurities.length > 0 ? availablePurities.length : 1);
-                                        const tonesCount = metalConfig.tones.length > 0 ? metalConfig.tones.length : (availableTones.length > 0 ? availableTones.length : 1);
-                                        const variantCount = puritiesCount * tonesCount;
-
-                                        return (
-                                            <div key={metal.id} className="rounded-xl border border-slate-200 bg-white p-4">
-                                                <div className="mb-4 flex items-center justify-between">
-                                                    <h4 className="text-xs sm:text-sm font-semibold text-slate-900">Metal: {metal.name}</h4>
-                                                    {/* {variantCount > 0 && (
-                                                        <span className="text-xs font-medium text-sky-600">
-                                                            {variantCount} variant{variantCount !== 1 ? 's' : ''} for this metal
-                                                        </span>
-                                                    )} */}
-                                                </div>
-
-                                                <div className="mb-4">
-                                                    <p className="mb-3 text-xs text-slate-600">
-                                                        Choose all purities in which this design is available for {metal.name}.
-                                                    </p>
-                                                    {availablePurities.length === 0 ? (
-                                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                                                            No active purities available for {metal.name}. Please activate at least one purity for this metal.
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex flex-wrap gap-2 sm:gap-3">
-                                                            {availablePurities.map((purity) => {
-                                                            const isPuritySelected = metalConfig.purities.includes(purity.id);
-                                                            return (
-                                                                <label
-                                                                    key={purity.id}
-                                                                    className={`
-                                                                        inline-flex items-center justify-center rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer
-                                                                        ${isPuritySelected
-                                                                            ? 'bg-sky-600 text-white shadow-sm'
-                                                                            : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                                        }
-                                                                    `}
-                                                                >
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={isPuritySelected}
-                                                                        onChange={(e) => {
-                                                                            setData((prev: FormData) => {
-                                                                                const config = { ...(prev.metal_configurations || {}) };
-                                                                                if (!config[metal.id]) {
-                                                                                    config[metal.id] = { purities: [], tones: [] };
-                                                                                }
-                                                                                const currentPurities = config[metal.id].purities || [];
-                                                                                config[metal.id].purities = e.target.checked
-                                                                                    ? [...currentPurities, purity.id]
-                                                                                    : currentPurities.filter(id => id !== purity.id);
-
-                                                                                return {
-                                                                                    ...prev,
-                                                                                    metal_configurations: config,
-                                                                                };
-                                                                            });
-                                                                            
-                                                                            // Clear error when purity is selected
-                                                                            if (e.target.checked && metalSelectionError) {
-                                                                                setMetalSelectionError(null);
-                                                                            }
-                                                                        }}
-                                                                        className={`mr-2 h-4 w-4 rounded border-2 ${
-                                                                            isPuritySelected
-                                                                                ? 'border-white bg-white text-sky-600'
-                                                                                : 'border-slate-300 bg-white text-slate-700'
-                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                                    />
-                                                                    {purity.name}
-                                                                </label>
-                                                            );
-                                                        })}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div>
-                                                    <p className="mb-3 text-xs text-slate-600">
-                                                        Choose all tones in which this design is available for {metal.name}.
-                                                    </p>
-                                                    {availableTones.length === 0 ? (
-                                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                                                            No active tones available for {metal.name}. Please activate at least one tone for this metal.
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex flex-wrap gap-2 sm:gap-3">
-                                                            {availableTones.map((tone) => {
-                                                            const isToneSelected = metalConfig.tones.includes(tone.id);
-                                                            return (
-                                                                <label
-                                                                    key={tone.id}
-                                                                    className={`
-                                                                        inline-flex items-center justify-center rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer
-                                                                        ${isToneSelected
-                                                                            ? 'bg-sky-600 text-white shadow-sm'
-                                                                            : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                                        }
-                                                                    `}
-                                                                >
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={isToneSelected}
-                                                                        onChange={(e) => {
-                                                                            setData((prev: FormData) => {
-                                                                                const config = { ...(prev.metal_configurations || {}) };
-                                                                                if (!config[metal.id]) {
-                                                                                    config[metal.id] = { purities: [], tones: [] };
-                                                                                }
-                                                                                const currentTones = config[metal.id].tones || [];
-                                                                                config[metal.id].tones = e.target.checked
-                                                                                    ? [...currentTones, tone.id]
-                                                                                    : currentTones.filter(id => id !== tone.id);
-
-                                                                                return {
-                                                                                    ...prev,
-                                                                                    metal_configurations: config,
-                                                                                };
-                                                                            });
-                                                                            
-                                                                            // Clear error when tone is selected
-                                                                            if (e.target.checked && metalSelectionError) {
-                                                                                setMetalSelectionError(null);
-                                                                            }
-                                                                        }}
-                                                                        className={`mr-2 h-4 w-4 rounded border-2 ${
-                                                                            isToneSelected
-                                                                                ? 'border-white bg-white text-sky-600'
-                                                                                : 'border-slate-300 bg-white text-slate-700'
-                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                                    />
-                                                                    {tone.name}
-                                                                </label>
-                                                            );
-                                                        })}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                
-                                {/* Error message box at the bottom of metals section */}
-                                {(errors.selected_metals || metalSelectionError) && (
-                                    <div className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3">
-                                        <div className="flex items-start gap-2">
-                                            <svg
-                                                className="h-5 w-5 flex-shrink-0 text-rose-600 mt-0.5"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                                />
-                                            </svg>
-                                            <p className="text-sm text-rose-800">
-                                                {errors.selected_metals || metalSelectionError}
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-3 sm:space-y-4 rounded-2xl border border-slate-200 p-3 sm:p-4">
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Diamonds</h3>
-                                        <p className="text-xs text-slate-500">Select diamonds and specify counts for your product variants.</p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={addDiamondSelection}
-                                        className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full border border-slate-300 bg-white px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-slate-700 transition hover:border-sky-400 hover:bg-sky-50"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
-                                        </svg>
-                                        Add Diamond
-                                    </button>
-                                </div>
-                                {(data.diamond_selections || []).length > 0 ? (
-                                    <div className="space-y-3">
-                                        {(data.diamond_selections || []).map((selection, index) => {
-                                            const isDiamondSelected = selection.diamond_id !== '' && selection.diamond_id !== null && selection.diamond_id !== undefined;
-                                            const isCountEmpty = !selection.count || selection.count.trim() === '' || Number(selection.count) <= 0;
-                                            const hasError = isDiamondSelected && isCountEmpty;
-                                            
-                                            return (
-                                                <div key={index} className="flex items-start gap-2 sm:gap-3 rounded-lg sm:rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
-                                                    <div className="flex-1 min-w-0">
-                                                        <label className="mb-1 block text-xs font-semibold text-slate-600">Diamond</label>
-                                                        <select
-                                                            value={selection.diamond_id === '' ? '' : selection.diamond_id}
-                                                            onChange={(e) => updateDiamondSelection(index, 'diamond_id', e.target.value === '' ? '' : Number(e.target.value))}
-                                                            className="w-full rounded-lg sm:rounded-xl border border-slate-200 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                        >
-                                                            <option value="">Select diamond</option>
-                                                            {diamonds
-                                                                .filter((diamond) => {
-                                                                    // Get all selected diamond IDs except the current selection
-                                                                    const otherSelectedIds = (data.diamond_selections || [])
-                                                                        .map((sel, idx) => idx !== index && sel.diamond_id ? Number(sel.diamond_id) : null)
-                                                                        .filter((id): id is number => id !== null);
-                                                                    // Include this diamond if it's not selected elsewhere, or if it's the current selection
-                                                                    return !otherSelectedIds.includes(diamond.id) || selection.diamond_id === diamond.id;
-                                                                })
-                                                                .map((diamond) => (
-                                                                    <option key={diamond.id} value={diamond.id}>
-                                                                        {diamond.name}
-                                                                    </option>
-                                                                ))}
-                                                        </select>
-                                                    </div>
-                                                    <div className="w-10 sm:w-24 flex-shrink-0">
-                                                        <label className="mb-1 block text-xs font-semibold text-slate-600">
-                                                            Count
-                                                            {isDiamondSelected && <span className="ml-1 text-rose-500">*</span>}
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            min="1"
-                                                            step="1"
-                                                            required={isDiamondSelected}
-                                                            value={selection.count}
-                                                            onChange={(e) => updateDiamondSelection(index, 'count', e.target.value)}
-                                                            className={`w-full rounded-lg sm:rounded-xl border px-2 py-1 sm:px-2.5 sm:py-1.5 text-xs sm:text-sm focus:outline-none focus:ring-2 ${
-                                                                hasError
-                                                                    ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-200'
-                                                                    : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
-                                                            }`}
-                                                            placeholder={isDiamondSelected ? "Required" : "0"}
-                                                        />
-                                                        {hasError && (
-                                                            <span className="mt-1 block text-[10px] sm:text-xs text-rose-500">Count is required</span>
-                                                        )}
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeDiamondSelection(index)}
-                                                        className="mt-6 rounded-full border border-rose-200 p-1 sm:p-1.5 text-rose-600 transition hover:border-rose-300 hover:text-rose-700 flex-shrink-0"
-                                                        aria-label="Remove diamond"
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <p className="text-xs text-slate-400">No diamonds added. Click "Add Diamond" to add one.</p>
-                                )}
-                            </div>
-                            <div className="flex justify-end">
-                                <button
-                                    type="button"
-                                    onClick={generateVariantMatrix}
-                                    className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
-                                    </svg>
-                                    Generate Matrix
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                <div className="rounded-2xl sm:rounded-3xl bg-white p-3 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                        <div className="rounded-2xl sm:rounded-3xl bg-white p-3 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex flex-col gap-3 sm:gap-4 border-b border-slate-200 pb-4 sm:pb-6 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-slate-900">Variant Matrix</h2>
@@ -4416,7 +2483,7 @@ export default function AdminProductEdit() {
                                     // This ensures the display respects the setting at generation time, not the current checkbox state
                                     const showAllVariants = generatedShowAllVariantsBySize !== undefined 
                                         ? generatedShowAllVariantsBySize 
-                                        : (data.show_all_variants_by_size !== undefined ? data.show_all_variants_by_size : true);
+                                        : (watch('show_all_variants_by_size') !== undefined ? watch('show_all_variants_by_size') : true);
                                     
                                     // Note: When show_all_variants_by_size === false, variants are already generated 
                                     // with only one per metal combination in generateVariantMatrixUtil
@@ -4463,10 +2530,10 @@ export default function AdminProductEdit() {
                                     // - Or no grouping needed (show_all_variants_by_size is undefined or true)
                                     // - Or when variants were already generated grouped (one per metal) when "No" was selected
                                     return allVariants.map((variant, index) => ({ variant, index, group: [variant] }));
-                                }, [generatedMatrixVariants, data.variants, generatedShowAllVariantsBySize]).map(({ variant, index, group }) => {
+                                }, [generatedMatrixVariants, watch('variants'), generatedShowAllVariantsBySize]).map(({ variant, index, group }) => {
                                     // Generate unique key for this variant
                                     const variantKey = variant.id ?? `variant-${index}-${variant.sku ?? ''}-${JSON.stringify(variant.metals?.map(m => `${m.metal_id}-${m.metal_purity_id}-${m.metal_tone_id}`) ?? [])}`;
-                                    const meta = buildVariantMeta(variant, data);
+                                    const meta = buildVariantMeta(variant, watch() as ProductFormData);
                                     const metalLabel = meta.metalTone || '—';
 
                                     const variantMetals = (variant.metals || []).filter(
@@ -4576,10 +2643,10 @@ export default function AdminProductEdit() {
                                             diamond_id: null,
                                             diamonds_count: d.diamonds_count || '',
                                         }));
-                                    } else if ((data.diamond_selections || []).length > 0) {
-                                        variantDiamonds = (data.diamond_selections || [])
-                                            .filter((selection) => selection.diamond_id !== '' && selection.diamond_id !== null && selection.diamond_id !== undefined)
-                                            .map((selection) => ({
+                                    } else if ((watch('diamond_selections') || []).length > 0) {
+                                        variantDiamonds = (watch('diamond_selections') || [])
+                                            .filter((selection: any) => selection.diamond_id !== '' && selection.diamond_id !== null && selection.diamond_id !== undefined)
+                                            .map((selection: any) => ({
                                                 diamond_id: typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id),
                                                 diamonds_count: selection.count || '',
                                             }));
@@ -4591,7 +2658,7 @@ export default function AdminProductEdit() {
                                     const variantSizeId = (variant as any).size_id;
                                     let sizeDisplay = '—';
                                     if (variantSizeId !== null && variantSizeId !== undefined) {
-                                        const categoryId = data.category_id ? Number(data.category_id) : null;
+                                        const categoryId = watch('category_id') ? Number(watch('category_id')) : null;
                                         const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
                                         const categorySizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes) || 
                                                               (product?.category?.sizes || []);
@@ -4627,7 +2694,11 @@ export default function AdminProductEdit() {
                                                     placeholder="Variant SKU"
                                                 />
                                                 {errors[`variants.${index}.sku`] && (
-                                                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-rose-500">{errors[`variants.${index}.sku`]}</p>
+                                                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-rose-500">
+                                                        {typeof errors[`variants.${index}.sku`] === 'string' 
+                                                            ? errors[`variants.${index}.sku`] 
+                                                            : errors[`variants.${index}.sku`]?.message || 'Invalid value'}
+                                                    </p>
                                                 )}
                                             </td>
                                             <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle min-w-[200px] sm:min-w-[300px]">
@@ -4639,7 +2710,11 @@ export default function AdminProductEdit() {
                                                     placeholder="Display label"
                                                 />
                                                 {errors[`variants.${index}.label`] && (
-                                                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-rose-500">{errors[`variants.${index}.label`]}</p>
+                                                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-rose-500">
+                                                        {typeof errors[`variants.${index}.label`] === 'string' 
+                                                            ? errors[`variants.${index}.label`] 
+                                                            : errors[`variants.${index}.label`]?.message || 'Invalid value'}
+                                                    </p>
                                                 )}
                                             </td>
                                             <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle text-slate-700">
@@ -4929,13 +3004,24 @@ export default function AdminProductEdit() {
                                         </React.Fragment>
                                     );
                                 })}
-                                 {(data.variants || []).length === 0 && (
+                                 {(watch('variants') || []).length === 0 && generatedMatrixVariants.length === 0 && (
                                     <tr>
                                         <td
                                             colSpan={17}
-                                            className="px-2 py-4 sm:px-5 sm:py-6 text-center text-[10px] sm:text-xs uppercase tracking-[0.1em] text-slate-400"
+                                            className="px-2 py-4 sm:px-5 sm:py-6 text-center"
                                         >
-                                            No variants configured. Generate matrix to create variants.
+                                            <div className="flex flex-col items-center gap-2">
+                                                <p className="text-[10px] sm:text-xs uppercase tracking-[0.1em] text-slate-400">
+                                                    No variants configured. Generate matrix to create variants.
+                                                </p>
+                                                {(formErrors.variants || errors.variants) && (
+                                                    <p className="text-xs text-rose-600 font-medium">
+                                                        {formErrors.variants?.message || 
+                                                         (typeof errors.variants === 'string' ? errors.variants : errors.variants?.message) || 
+                                                         'Variants are required to save the product.'}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 )}
@@ -4943,7 +3029,8 @@ export default function AdminProductEdit() {
                                 </table>
                             </div>
                         </div>
-                    </div>
+                        </div>
+                </div>
 
             </form>
         </>

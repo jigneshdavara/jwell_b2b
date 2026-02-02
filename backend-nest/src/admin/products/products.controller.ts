@@ -20,6 +20,7 @@ import {
     CreateProductDto,
     UpdateProductDto,
     BulkDestroyDto,
+    BulkStatusDto,
 } from './dto/product.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/auth/guards/admin.guard';
@@ -34,8 +35,19 @@ export class ProductsController {
     findAll(
         @Query('page') page: number = 1,
         @Query('per_page') perPage: number = 10,
+        @Query('search') search?: string,
+        @Query('brand_id') brandId?: string,
+        @Query('category_id') categoryId?: string,
+        @Query('status') status?: string,
     ) {
-        return this.productsService.findAll(page, perPage);
+        return this.productsService.findAll(
+            page,
+            perPage,
+            search,
+            brandId ? parseInt(brandId) : undefined,
+            categoryId ? parseInt(categoryId) : undefined,
+            status,
+        );
     }
 
     @Get('options')
@@ -105,6 +117,12 @@ export class ProductsController {
             ? files.map((file) => `storage/products/${file.filename}`)
             : [];
         return this.productsService.update(id, dto, mediaFiles);
+    }
+
+    @Post('bulk/status')
+    @UseInterceptors(FormDataToJsonInterceptor)
+    bulkUpdateStatus(@Body() dto: BulkStatusDto) {
+        return this.productsService.bulkUpdateStatus(dto.ids, dto.is_active);
     }
 
     @Delete('bulk')

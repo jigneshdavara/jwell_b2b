@@ -197,10 +197,48 @@ export class ProductsService {
         };
     }
 
-    async findAll(page: number, perPage: number) {
+    async findAll(
+        page: number,
+        perPage: number,
+        search?: string,
+        brandId?: number,
+        categoryId?: number,
+        status?: string,
+    ) {
         const skip = (page - 1) * perPage;
+
+        // Build where clause for filters
+        const where: Prisma.productsWhereInput = {};
+
+        // Search filter (SKU or name)
+        if (search && search.trim()) {
+            const searchTerm = search.trim();
+            where.OR = [
+                { sku: { contains: searchTerm, mode: 'insensitive' } },
+                { name: { contains: searchTerm, mode: 'insensitive' } },
+            ];
+        }
+
+        // Brand filter
+        if (brandId) {
+            where.brand_id = BigInt(brandId);
+        }
+
+        // Category filter
+        if (categoryId) {
+            where.category_id = BigInt(categoryId);
+        }
+
+        // Status filter
+        if (status === 'active') {
+            where.is_active = true;
+        } else if (status === 'inactive') {
+            where.is_active = false;
+        }
+
         const [items, total] = await Promise.all([
             this.prisma.products.findMany({
+                where,
                 skip,
                 take: perPage,
                 include: {
@@ -243,7 +281,7 @@ export class ProductsService {
                 },
                 orderBy: { created_at: 'desc' },
             }),
-            this.prisma.products.count(),
+            this.prisma.products.count({ where }),
         ]);
 
         return {
@@ -905,6 +943,24 @@ export class ProductsService {
         return { success: true, message: 'Product deleted successfully' };
     }
 
+    async bulkUpdateStatus(ids: number[], isActive: boolean) {
+        const bigIntIds = ids.map((id) => BigInt(id));
+
+        await this.prisma.products.updateMany({
+            where: {
+                id: { in: bigIntIds },
+            },
+            data: {
+                is_active: isActive,
+            },
+        });
+
+        return {
+            message: `Successfully ${isActive ? 'activated' : 'deactivated'} ${ids.length} product(s)`,
+            updated: ids.length,
+        };
+    }
+
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
@@ -1063,18 +1119,24 @@ export class ProductsService {
                         : null,
                     metal_weight: Number(metal.metal_weight),
                     metadata: (metal.metadata as Record<string, unknown>) || {},
-                    metal: metal.metals ? {
-                        id: Number(metal.metals.id),
-                        name: metal.metals.name,
-                    } : null,
-                    metal_purity: metal.metal_purities ? {
-                        id: Number(metal.metal_purities.id),
-                        name: metal.metal_purities.name,
-                    } : null,
-                    metal_tone: metal.metal_tones ? {
-                        id: Number(metal.metal_tones.id),
-                        name: metal.metal_tones.name,
-                    } : null,
+                    metal: metal.metals
+                        ? {
+                              id: Number(metal.metals.id),
+                              name: metal.metals.name,
+                          }
+                        : null,
+                    metal_purity: metal.metal_purities
+                        ? {
+                              id: Number(metal.metal_purities.id),
+                              name: metal.metal_purities.name,
+                          }
+                        : null,
+                    metal_tone: metal.metal_tones
+                        ? {
+                              id: Number(metal.metal_tones.id),
+                              name: metal.metal_tones.name,
+                          }
+                        : null,
                 })),
                 diamonds: variant.product_variant_diamonds.map((diamond) => ({
                     id: Number(diamond.id),

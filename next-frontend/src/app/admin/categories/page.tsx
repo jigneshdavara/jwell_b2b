@@ -4,12 +4,19 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
+import TextInput from "@/components/ui/TextInput";
+import InputLabel from "@/components/ui/InputLabel";
+import InputError from "@/components/ui/InputError";
+import Checkbox from "@/components/ui/Checkbox";
 import { Menu, Transition } from "@headlessui/react";
 import React from "react";
 import { adminService } from "@/services/adminService";
 import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 import { toastError } from "@/utils/toast";
 import { getMediaUrlNullable } from "@/utils/mediaUrl";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { categorySchema, CategoryFormData } from "@/lib/validation/admin.schema";
 
 type CategoryRow = {
     id: number;
@@ -59,15 +66,31 @@ export default function AdminCategoriesPage() {
     const [deleteConfirm, setDeleteConfirm] = useState<CategoryRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
-    const [formState, setFormState] = useState({
-        parent_id: '' as string | number,
-        code: '',
-        name: '',
-        description: '',
-        is_active: true,
-        display_order: 0 as number | string,
-        style_ids: [] as number[],
-        size_ids: [] as number[],
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        setValue,
+        trigger,
+        watch,
+    } = useForm<CategoryFormData>({
+        resolver: zodResolver(categorySchema),
+        mode: "onSubmit",
+        reValidateMode: "onBlur",
+        shouldFocusError: true,
+        defaultValues: {
+            parent_id: '',
+            code: '',
+            name: '',
+            description: '',
+            is_active: true,
+            display_order: 0,
+            style_ids: [],
+            size_ids: [],
+        },
     });
 
     const [styles, setStyles] = useState<Style[]>([]);
@@ -78,6 +101,8 @@ export default function AdminCategoriesPage() {
     const [styleSearchQuery, setStyleSearchQuery] = useState('');
     const [sizeSearchQuery, setSizeSearchQuery] = useState('');
     const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+    const [stylesAssignedToProducts, setStylesAssignedToProducts] = useState<Set<number>>(new Set());
+    const [sizesAssignedToProducts, setSizesAssignedToProducts] = useState<Set<number>>(new Set());
     const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -225,7 +250,8 @@ export default function AdminCategoriesPage() {
 
     // Get selected category name
     const getSelectedCategoryName = (): string => {
-        if (formState.parent_id === '') {
+        const parentId = watch('parent_id');
+        if (parentId === '' || !parentId) {
             return 'None (Top Level)';
         }
         const findCategoryName = (tree: CategoryTreeNode[], id: string | number): string | null => {
@@ -238,7 +264,7 @@ export default function AdminCategoriesPage() {
             }
             return null;
         };
-        return findCategoryName(availableCategoryTree, formState.parent_id) || 'Select parent category';
+        return findCategoryName(availableCategoryTree, parentId) || 'Select parent category';
     };
 
     // Toggle node expansion
@@ -256,7 +282,8 @@ export default function AdminCategoriesPage() {
 
     // Render tree node recursively
     const renderTreeNode = useCallback((node: CategoryTreeNode, level: number = 0, closeMenu?: () => void): React.ReactNode => {
-        const isSelected = String(formState.parent_id) === String(node.id);
+        const parentId = watch('parent_id');
+        const isSelected = String(parentId) === String(node.id);
         const hasChildren = node.children.length > 0;
         const isExpanded = expandedNodes.has(node.id);
 
@@ -308,7 +335,8 @@ export default function AdminCategoriesPage() {
                                 }`}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    setFormState(prev => ({ ...prev, parent_id: String(node.id) }));
+                                    setValue('parent_id', String(node.id));
+                                    trigger('parent_id');
                                     close();
                                     closeMenu?.();
                                 }}
@@ -326,13 +354,15 @@ export default function AdminCategoriesPage() {
                 )}
             </div>
         );
-    }, [formState.parent_id, expandedNodes]);
+    }, [watch('parent_id'), expandedNodes]);
 
     const resetForm = () => {
         setEditingCategory(null);
         setModalOpen(false);
         setExpandedNodes(new Set());
-        setFormState({
+        setStylesAssignedToProducts(new Set());
+        setSizesAssignedToProducts(new Set());
+        reset({
             parent_id: '',
             code: '',
             name: '',
@@ -395,13 +425,21 @@ export default function AdminCategoriesPage() {
             const response = await adminService.getCategory(category.id);
             const fullCategory = response.data;
             
+            // Store styles assigned to products
+            const assignedStyleIds = fullCategory.styles_assigned_to_products || [];
+            setStylesAssignedToProducts(new Set(assignedStyleIds.map((id: any) => Number(id))));
+            
+            // Store sizes assigned to products
+            const assignedSizeIds = fullCategory.sizes_assigned_to_products || [];
+            setSizesAssignedToProducts(new Set(assignedSizeIds.map((id: any) => Number(id))));
+            
             setEditingCategory({
                 ...category,
                 styles: fullCategory.styles || [],
                 sizes: fullCategory.sizes || [],
                 cover_image_url: fullCategory.cover_image_url ? getMediaUrlNullable(fullCategory.cover_image_url) : null,
             });
-            setFormState({
+            reset({
                 parent_id: fullCategory.parent_id ? String(fullCategory.parent_id) : '',
                 code: fullCategory.code ?? '',
                 name: fullCategory.name,
@@ -424,8 +462,10 @@ export default function AdminCategoriesPage() {
             }
         } catch (error: any) {
             // Fallback to basic category data
+            setStylesAssignedToProducts(new Set());
+            setSizesAssignedToProducts(new Set());
             setEditingCategory(category);
-            setFormState({
+            reset({
                 parent_id: category.parent_id ? String(category.parent_id) : '',
                 code: category.code ?? '',
                 name: category.name,
@@ -483,22 +523,21 @@ export default function AdminCategoriesPage() {
         };
     }, [coverObjectUrl]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: CategoryFormData) => {
         setLoading(true);
 
         try {
             const formData = new FormData();
-            formData.append('name', formState.name);
-            if (formState.code) formData.append('code', formState.code);
-            if (formState.description) formData.append('description', formState.description);
-            if (formState.parent_id) formData.append('parent_id', String(formState.parent_id));
-            formData.append('is_active', String(formState.is_active));
-            formData.append('display_order', String(formState.display_order));
+            formData.append('name', data.name);
+            if (data.code) formData.append('code', data.code);
+            if (data.description) formData.append('description', data.description);
+            if (data.parent_id && data.parent_id !== '') formData.append('parent_id', String(data.parent_id));
+            formData.append('is_active', String(data.is_active));
+            formData.append('display_order', String(data.display_order));
             
             // Append arrays - NestJS expects arrays as multiple entries with same key
-            formState.style_ids.forEach(id => formData.append('style_ids', String(id)));
-            formState.size_ids.forEach(id => formData.append('size_ids', String(id)));
+            data.style_ids.forEach(id => formData.append('style_ids', String(id)));
+            data.size_ids.forEach(id => formData.append('size_ids', String(id)));
             
             const coverFile = fileInputRef.current?.files?.[0];
             if (coverFile) {
@@ -515,7 +554,27 @@ export default function AdminCategoriesPage() {
             resetForm();
             await loadCategories();
         } catch (error: any) {
-            toastError(error.response?.data?.message || 'Failed to save category. Please try again.');
+            // Handle field-level errors
+            if (error.response?.data?.errors) {
+                const fieldErrors = error.response.data.errors;
+                Object.keys(fieldErrors).forEach((key) => {
+                    const errorMessage = Array.isArray(fieldErrors[key]) 
+                        ? fieldErrors[key][0] 
+                        : fieldErrors[key];
+                    setError(key as keyof CategoryFormData, {
+                        type: 'server',
+                        message: errorMessage,
+                    });
+                });
+            }
+            
+            // Show error message in FlashMessage (prioritize message field)
+            const errorMessage = error.response?.data?.message 
+                ? (Array.isArray(error.response.data.message) 
+                    ? error.response.data.message.join(', ') 
+                    : error.response.data.message)
+                : 'Failed to save category. Please try again.';
+            toastError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -674,107 +733,170 @@ export default function AdminCategoriesPage() {
                     </div>
 
                     <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
-                        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" id="category-form">
+                        <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4 sm:space-y-6" id="category-form">
                             <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                                 <div className="space-y-4 sm:space-y-6">
                                     <div className="grid gap-3 sm:gap-4">
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Parent Category</span>
-                                            <Menu as="div" className="relative">
-                                                <Menu.Button className="w-full min-h-[44px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-left text-xs sm:text-sm">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className={formState.parent_id === '' ? 'text-slate-500' : 'text-slate-900'}>
-                                                            {getSelectedCategoryName()}
-                                                        </span>
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                                        </svg>
-                                                    </div>
-                                                </Menu.Button>
-                                                <Transition
-                                                    enter="transition ease-out duration-100"
-                                                    enterFrom="transform opacity-0 scale-95"
-                                                    enterTo="transform opacity-100 scale-100"
-                                                    leave="transition ease-in duration-75"
-                                                    leaveFrom="transform opacity-100 scale-100"
-                                                    leaveTo="transform opacity-0 scale-95"
-                                                >
-                                                    <Menu.Items className="absolute z-50 mt-2 w-full max-h-80 overflow-y-auto rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                                        <div className="p-2">
-                                                            <Menu.Item>
-                                                                {({ active, close }) => (
-                                                                    <div
-                                                                        className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 cursor-pointer transition-colors ${
-                                                                            formState.parent_id === ''
-                                                                                ? 'bg-sky-50 text-sky-700 font-medium'
-                                                                                : active
-                                                                                ? 'bg-slate-50 text-slate-700'
-                                                                                : 'text-slate-700'
-                                                                        }`}
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            if (formState.parent_id !== '') {
-                                                                                setFormState(prev => ({ ...prev, parent_id: '' }));
-                                                                                close();
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <div className="w-4 h-4 sm:w-5 sm:h-5"></div>
-                                                                        <span className="text-xs sm:text-sm">None (Top Level)</span>
+                                        {/* Parent Category */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="parent_id">Parent Category</InputLabel>
+                                            <Controller
+                                                name="parent_id"
+                                                control={control}
+                                                render={({ field, fieldState }) => {
+                                                    const parentId = field.value || '';
+                                                    return (
+                                                        <>
+                                                            <Menu as="div" className="relative">
+                                                                <Menu.Button className={`w-full min-h-[44px] rounded-lg sm:rounded-xl border ${fieldState.error ? 'border-red-300' : 'border-slate-300'} bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-left text-xs sm:text-sm`}>
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className={parentId === '' ? 'text-slate-500' : 'text-slate-900'}>
+                                                                            {getSelectedCategoryName()}
+                                                                        </span>
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                                        </svg>
                                                                     </div>
-                                                                )}
-                                                            </Menu.Item>
-                                                            <div className="mt-1 space-y-0.5">
-                                                                {availableCategoryTree.map((node) => renderTreeNode(node, 0))}
-                                                            </div>
-                                                        </div>
-                                                    </Menu.Items>
-                                                </Transition>
-                                            </Menu>
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Code</span>
-                                            <input
-                                                type="text"
-                                                value={formState.code}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value }))}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                placeholder="e.g., RNG, NKL"
-                                            />
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Name</span>
-                                            <input
-                                                type="text"
-                                                value={formState.name}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                required
-                                            />
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Display order</span>
-                                            <input
-                                                type="number"
-                                                value={formState.display_order}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    setFormState(prev => ({ ...prev, display_order: value === '' ? '' : Number(value) }));
+                                                                </Menu.Button>
+                                                                <Transition
+                                                                    enter="transition ease-out duration-100"
+                                                                    enterFrom="transform opacity-0 scale-95"
+                                                                    enterTo="transform opacity-100 scale-100"
+                                                                    leave="transition ease-in duration-75"
+                                                                    leaveFrom="transform opacity-100 scale-100"
+                                                                    leaveTo="transform opacity-0 scale-95"
+                                                                >
+                                                                    <Menu.Items className="absolute z-50 mt-2 w-full max-h-80 overflow-y-auto rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                                        <div className="p-2">
+                                                                            <Menu.Item>
+                                                                                {({ active, close }) => (
+                                                                                    <div
+                                                                                        className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 cursor-pointer transition-colors ${
+                                                                                            parentId === ''
+                                                                                                ? 'bg-sky-50 text-sky-700 font-medium'
+                                                                                                : active
+                                                                                                ? 'bg-slate-50 text-slate-700'
+                                                                                                : 'text-slate-700'
+                                                                                        }`}
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            if (parentId !== '') {
+                                                                                                field.onChange('');
+                                                                                                trigger('parent_id');
+                                                                                                close();
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        <div className="w-4 h-4 sm:w-5 sm:h-5"></div>
+                                                                                        <span className="text-xs sm:text-sm">None (Top Level)</span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </Menu.Item>
+                                                                            <div className="mt-1 space-y-0.5">
+                                                                                {availableCategoryTree.map((node) => renderTreeNode(node, 0))}
+                                                                            </div>
+                                                                        </div>
+                                                                    </Menu.Items>
+                                                                </Transition>
+                                                            </Menu>
+                                                            {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                        </>
+                                                    );
                                                 }}
-                                                onBlur={(e) => {
-                                                    if (e.target.value === '') {
-                                                        setFormState(prev => ({ ...prev, display_order: 0 }));
-                                                    }
-                                                }}
-                                                onFocus={(e) => {
-                                                    if (e.target.value === '0') {
-                                                        e.target.select();
-                                                    }
-                                                }}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                min={0}
                                             />
-                                        </label>
+                                        </div>
+
+                                        {/* Code */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="code">Code</InputLabel>
+                                            <Controller
+                                                name="code"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="code"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                trigger('code');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('code');
+                                                            }}
+                                                            placeholder="e.g., RNG, NKL"
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
+                                            />
+                                        </div>
+
+                                        {/* Name */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="name">Name</InputLabel>
+                                            <Controller
+                                                name="name"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="name"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                trigger('name');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('name');
+                                                            }}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
+                                            />
+                                        </div>
+
+                                        {/* Display Order */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="display_order">Display order</InputLabel>
+                                            <Controller
+                                                name="display_order"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="display_order"
+                                                            type="number"
+                                                            value={field.value?.toString() || '0'}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                field.onChange(value);
+                                                                trigger('display_order');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('display_order');
+                                                            }}
+                                                            onFocus={(e) => {
+                                                                if (e.target.value === '0') {
+                                                                    e.target.select();
+                                                                }
+                                                            }}
+                                                            min={0}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
+                                            />
+                                        </div>
                                         <label className="flex flex-col gap-3 text-xs sm:text-sm text-slate-600">
                                             <span>Cover Image</span>
                                             <input
@@ -831,311 +953,429 @@ export default function AdminCategoriesPage() {
                                         </label>
                                     </div>
 
-                                    <label className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
-                                        <input
-                                            type="checkbox"
-                                            checked={formState.is_active}
-                                            onChange={(e) => setFormState(prev => ({ ...prev, is_active: e.target.checked }))}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                    {/* Is Active */}
+                                    <div className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3">
+                                        <Controller
+                                            name="is_active"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onChange={(e) => field.onChange(e.target.checked)}
+                                                />
+                                            )}
                                         />
-                                        Active for selection
-                                    </label>
+                                        <InputLabel htmlFor="is_active" className="mb-0 cursor-pointer">
+                                            Active for selection
+                                        </InputLabel>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4 sm:space-y-6">
-                                    <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                        <div className="flex items-center justify-between">
-                                            <span>Styles</span>
-                                            {formState.style_ids && formState.style_ids.length > 0 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormState(prev => ({ ...prev, style_ids: [] }))}
-                                                    className="text-xs font-medium text-rose-600 hover:text-rose-700"
-                                                >
-                                                    Remove all
-                                                </button>
+                                    {/* Description */}
+                                    <div className="flex flex-col gap-1.5 sm:gap-2">
+                                        <InputLabel htmlFor="description">Description</InputLabel>
+                                        <Controller
+                                            name="description"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <>
+                                                    <textarea
+                                                        id="description"
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            trigger('description');
+                                                        }}
+                                                        onBlur={async () => {
+                                                            field.onBlur();
+                                                            await trigger('description');
+                                                        }}
+                                                        placeholder="Optional notes for internal reference."
+                                                        className={`min-h-[100px] sm:min-h-[120px] mt-1 rounded-lg sm:rounded-xl border ${fieldState.error ? 'border-red-300' : 'border-slate-300'} bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${fieldState.error ? 'focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    />
+                                                    {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                </>
                                             )}
-                                        </div>
-                                        {styles && styles.length > 0 ? (
-                                            <Menu as="div" className="relative">
-                                                <Menu.Button className="w-full min-h-[44px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-left text-xs sm:text-sm">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        {formState.style_ids && formState.style_ids.length > 0 ? (
-                                                            formState.style_ids.map((styleId) => {
-                                                                const style = styles.find((s) => s.id === styleId);
-                                                                if (!style) return null;
-                                                                return (
-                                                                    <span
-                                                                        key={styleId}
-                                                                        className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium text-sky-700"
-                                                                    >
-                                                                        {style.name}
-                                                                        <span
-                                                                            role="button"
-                                                                            tabIndex={0}
-                                                                            onMouseDown={(e) => {
-                                                                                e.preventDefault();
-                                                                                e.stopPropagation();
-                                                                                setFormState(prev => ({ ...prev, style_ids: prev.style_ids.filter((id) => id !== styleId) }));
-                                                                            }}
-                                                                            onKeyDown={(e) => {
-                                                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                                                    e.preventDefault();
-                                                                                    e.stopPropagation();
-                                                                                    setFormState(prev => ({ ...prev, style_ids: prev.style_ids.filter((id) => id !== styleId) }));
-                                                                                }
-                                                                            }}
-                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-                                                                        >
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                                            </svg>
-                                                                        </span>
-                                                                    </span>
-                                                                );
-                                                            })
-                                                        ) : (
-                                                            <span className="text-xs sm:text-sm text-slate-400">Select styles</span>
-                                                        )}
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                                        </svg>
-                                                    </div>
-                                                </Menu.Button>
-                                                <Transition
-                                                    enter="transition ease-out duration-100"
-                                                    enterFrom="transform opacity-0 scale-95"
-                                                    enterTo="transform opacity-100 scale-100"
-                                                    leave="transition ease-in duration-75"
-                                                    leaveFrom="transform opacity-100 scale-100"
-                                                    leaveTo="transform opacity-0 scale-95"
-                                                >
-                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                                        <div className="p-2 border-b border-slate-200">
-                                                            <input
-                                                                type="text"
-                                                                value={styleSearchQuery}
-                                                                onChange={(e) => setStyleSearchQuery(e.target.value)}
-                                                                placeholder="Search styles..."
-                                                                className="w-full rounded-lg sm:rounded-xl border border-slate-300 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                            />
-                                                        </div>
-                                                        <div className="max-h-60 overflow-auto p-2">
-                                                            {styles
-                                                                .filter((style) =>
-                                                                    style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
-                                                                )
-                                                                .map((style) => {
-                                                                    const isChecked = formState.style_ids?.includes(style.id) || false;
-                                                                    return (
-                                                                        <Menu.Item key={style.id}>
-                                                                            {({ active }) => (
-                                                                                <div
-                                                                                    className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 cursor-pointer ${
-                                                                                        active ? 'bg-slate-50' : ''
-                                                                                    }`}
-                                                                                    onClick={(e) => {
-                                                                                        if ((e.target as HTMLElement).tagName !== 'INPUT') {
-                                                                                            e.stopPropagation();
-                                                                                            e.preventDefault();
-                                                                                            const currentIds = formState.style_ids || [];
-                                                                                            if (isChecked) {
-                                                                                                setFormState(prev => ({ ...prev, style_ids: currentIds.filter((id) => id !== style.id) }));
-                                                                                            } else {
-                                                                                                setFormState(prev => ({ ...prev, style_ids: [...currentIds, style.id] }));
-                                                                                            }
-                                                                                        }
-                                                                                    }}
-                                                                                >
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        checked={isChecked}
-                                                                                        onChange={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            const currentIds = formState.style_ids || [];
-                                                                                            if (e.target.checked) {
-                                                                                                setFormState(prev => ({ ...prev, style_ids: [...currentIds, style.id] }));
-                                                                                            } else {
-                                                                                                setFormState(prev => ({ ...prev, style_ids: currentIds.filter((id) => id !== style.id) }));
-                                                                                            }
-                                                                                        }}
-                                                                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                                                        onClick={(e) => e.stopPropagation()}
-                                                                                    />
-                                                                                    <span className="text-xs sm:text-sm text-slate-700">{style.name}</span>
-                                                                                </div>
-                                                                            )}
-                                                                        </Menu.Item>
-                                                                    );
-                                                                })}
-                                                            {styles.filter((style) =>
-                                                                style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
-                                                            ).length === 0 && (
-                                                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-slate-400 text-center">No styles found</div>
-                                                            )}
-                                                        </div>
-                                                    </Menu.Items>
-                                                </Transition>
-                                            </Menu>
-                                        ) : (
-                                            <div className="rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-400">
-                                                No styles available. Create styles first in the Styles section.
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                        <div className="flex items-center justify-between">
-                                            <span>Sizes</span>
-                                            {formState.size_ids && formState.size_ids.length > 0 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormState(prev => ({ ...prev, size_ids: [] }))}
-                                                    className="text-xs font-medium text-rose-600 hover:text-rose-700"
-                                                >
-                                                    Remove all
-                                                </button>
-                                            )}
-                                        </div>
-                                        {sizes && sizes.length > 0 ? (
-                                            <Menu as="div" className="relative">
-                                                <Menu.Button className="w-full min-h-[44px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-left text-xs sm:text-sm">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        {formState.size_ids && formState.size_ids.length > 0 ? (
-                                                            formState.size_ids.map((sizeId) => {
-                                                                const size = sizes.find((s) => s.id === sizeId);
-                                                                if (!size) return null;
-                                                                return (
-                                                                    <span
-                                                                        key={sizeId}
-                                                                        className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium text-sky-700"
-                                                                    >
-                                                                        {size.name}
-                                                                        <span
-                                                                            role="button"
-                                                                            tabIndex={0}
-                                                                            onMouseDown={(e) => {
-                                                                                e.preventDefault();
-                                                                                e.stopPropagation();
-                                                                                setFormState(prev => ({ ...prev, size_ids: prev.size_ids.filter((id) => id !== sizeId) }));
-                                                                            }}
-                                                                            onKeyDown={(e) => {
-                                                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                                                    e.preventDefault();
-                                                                                    e.stopPropagation();
-                                                                                    setFormState(prev => ({ ...prev, size_ids: prev.size_ids.filter((id) => id !== sizeId) }));
-                                                                                }
-                                                                            }}
-                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-                                                                        >
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                                            </svg>
-                                                                        </span>
-                                                                    </span>
-                                                                );
-                                                            })
-                                                        ) : (
-                                                            <span className="text-slate-400">Select sizes</span>
-                                                        )}
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                                        </svg>
-                                                    </div>
-                                                </Menu.Button>
-                                                <Transition
-                                                    enter="transition ease-out duration-100"
-                                                    enterFrom="transform opacity-0 scale-95"
-                                                    enterTo="transform opacity-100 scale-100"
-                                                    leave="transition ease-in duration-75"
-                                                    leaveFrom="transform opacity-100 scale-100"
-                                                    leaveTo="transform opacity-0 scale-95"
-                                                >
-                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                                        <div className="p-2 border-b border-slate-200">
-                                                            <input
-                                                                type="text"
-                                                                value={sizeSearchQuery}
-                                                                onChange={(e) => setSizeSearchQuery(e.target.value)}
-                                                                placeholder="Search sizes..."
-                                                                className="w-full rounded-lg sm:rounded-xl border border-slate-300 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                            />
-                                                        </div>
-                                                        <div className="max-h-60 overflow-auto p-2">
-                                                            {sizes
-                                                                .filter((size) =>
-                                                                    size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
-                                                                )
-                                                                .map((size) => {
-                                                                    const isChecked = formState.size_ids?.includes(size.id) || false;
-                                                                    return (
-                                                                        <Menu.Item key={size.id}>
-                                                                            {({ active }) => (
-                                                                                <div
-                                                                                    className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 cursor-pointer ${
-                                                                                        active ? 'bg-slate-50' : ''
-                                                                                    }`}
-                                                                                    onClick={(e) => {
-                                                                                        if ((e.target as HTMLElement).tagName !== 'INPUT') {
-                                                                                            e.stopPropagation();
-                                                                                            e.preventDefault();
-                                                                                            const currentIds = formState.size_ids || [];
-                                                                                            if (isChecked) {
-                                                                                                setFormState(prev => ({ ...prev, size_ids: currentIds.filter((id) => id !== size.id) }));
-                                                                                            } else {
-                                                                                                setFormState(prev => ({ ...prev, size_ids: [...currentIds, size.id] }));
-                                                                                            }
-                                                                                        }
-                                                                                    }}
-                                                                                >
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        checked={isChecked}
-                                                                                        onChange={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            const currentIds = formState.size_ids || [];
-                                                                                            if (e.target.checked) {
-                                                                                                setFormState(prev => ({ ...prev, size_ids: [...currentIds, size.id] }));
-                                                                                            } else {
-                                                                                                setFormState(prev => ({ ...prev, size_ids: currentIds.filter((id) => id !== size.id) }));
-                                                                                            }
-                                                                                        }}
-                                                                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                                                        onClick={(e) => e.stopPropagation()}
-                                                                                    />
-                                                                                    <span className="text-xs sm:text-sm text-slate-700">{size.name}</span>
-                                                                                </div>
-                                                                            )}
-                                                                        </Menu.Item>
-                                                                    );
-                                                                })}
-                                                            {sizes.filter((size) =>
-                                                                size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
-                                                            ).length === 0 && (
-                                                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-slate-400 text-center">No sizes found</div>
-                                                            )}
-                                                        </div>
-                                                    </Menu.Items>
-                                                </Transition>
-                                            </Menu>
-                                        ) : (
-                                            <div className="rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-400">
-                                                No sizes available. Create sizes first in the Sizes section.
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                        <span>Description</span>
-                                        <textarea
-                                            value={formState.description}
-                                            onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                            className="min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                            placeholder="Optional notes for team (e.g. usage, category)."
                                         />
-                                    </label>
+                                    </div>
+
+                                    {/* Styles */}
+                                    <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
+                                        <div className="flex items-center justify-between">
+                                            <InputLabel>Styles</InputLabel>
+                                            {watch('style_ids')?.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        // Keep only styles that are assigned to products (locked styles)
+                                                        const currentStyleIds = watch('style_ids') || [];
+                                                        const stylesToKeep = currentStyleIds.filter((id) => stylesAssignedToProducts.has(id));
+                                                        setValue('style_ids', stylesToKeep);
+                                                        trigger('style_ids');
+                                                    }}
+                                                    className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                                                    title={stylesAssignedToProducts.size > 0 ? 'Only removable styles will be removed. Styles assigned to products will remain.' : ''}
+                                                >
+                                                    Remove all
+                                                </button>
+                                            )}
+                                        </div>
+                                        <Controller
+                                            name="style_ids"
+                                            control={control}
+                                            render={({ field }) => {
+                                                const styleIds = field.value || [];
+                                                if (!styles || styles.length === 0) {
+                                                    return (
+                                                        <div className="rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-400">
+                                                            No styles available. Create styles first in the Styles section.
+                                                        </div>
+                                                    );
+                                                }
+                                                return (
+                                                    <Menu as="div" className="relative">
+                                                        <Menu.Button className="w-full min-h-[44px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-left text-xs sm:text-sm">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                {styleIds.length > 0 ? (
+                                                                    styleIds.map((styleId) => {
+                                                                        const style = styles.find((s) => s.id === styleId);
+                                                                        if (!style) return null;
+                                                                        const isAssignedToProducts = stylesAssignedToProducts.has(styleId);
+                                                                        return (
+                                                                            <span
+                                                                                key={styleId}
+                                                                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium ${
+                                                                                    isAssignedToProducts
+                                                                                        ? 'bg-amber-100 text-amber-700'
+                                                                                        : 'bg-sky-100 text-sky-700'
+                                                                                }`}
+                                                                                title={isAssignedToProducts ? 'This style is assigned to products and cannot be removed' : ''}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                onMouseDown={(e) => e.stopPropagation()}
+                                                                            >
+                                                                                {style.name}
+                                                                                {!isAssignedToProducts && (
+                                                                                    <span
+                                                                                        role="button"
+                                                                                        tabIndex={0}
+                                                                                        onClick={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                            field.onChange(styleIds.filter((id) => id !== styleId));
+                                                                                        }}
+                                                                                        onMouseDown={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                            field.onChange(styleIds.filter((id) => id !== styleId));
+                                                                                        }}
+                                                                                        onKeyDown={(e) => {
+                                                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                                                e.preventDefault();
+                                                                                                e.stopPropagation();
+                                                                                                field.onChange(styleIds.filter((id) => id !== styleId));
+                                                                                            }
+                                                                                        }}
+                                                                                        className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                                                                                    >
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                                                        </svg>
+                                                                                    </span>
+                                                                                )}
+                                                                            </span>
+                                                                        );
+                                                                    })
+                                                                ) : (
+                                                                    <span className="text-xs sm:text-sm text-slate-400">Select styles</span>
+                                                                )}
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            </div>
+                                                        </Menu.Button>
+                                                        <Transition
+                                                            enter="transition ease-out duration-100"
+                                                            enterFrom="transform opacity-0 scale-95"
+                                                            enterTo="transform opacity-100 scale-100"
+                                                            leave="transition ease-in duration-75"
+                                                            leaveFrom="transform opacity-100 scale-100"
+                                                            leaveTo="transform opacity-0 scale-95"
+                                                        >
+                                                            <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                                <div className="p-2 border-b border-slate-200">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={styleSearchQuery}
+                                                                        onChange={(e) => setStyleSearchQuery(e.target.value)}
+                                                                        placeholder="Search styles..."
+                                                                        className="w-full rounded-lg sm:rounded-xl border border-slate-300 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    />
+                                                                </div>
+                                                                <div className="max-h-60 overflow-auto p-2">
+                                                                    {styles
+                                                                        .filter((style) =>
+                                                                            style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
+                                                                        )
+                                                                        .map((style) => {
+                                                                            const isChecked = styleIds.includes(style.id);
+                                                                            const isAssignedToProducts = stylesAssignedToProducts.has(style.id);
+                                                                            return (
+                                                                                <Menu.Item key={style.id}>
+                                                                                    {({ active }) => (
+                                                                                        <div
+                                                                                            className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 ${
+                                                                                                isAssignedToProducts && isChecked
+                                                                                                    ? 'cursor-not-allowed opacity-75'
+                                                                                                    : 'cursor-pointer'
+                                                                                            } ${active && !(isAssignedToProducts && isChecked) ? 'bg-slate-50' : ''}`}
+                                                                                            onClick={(e) => {
+                                                                                                if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                                                                                                    e.stopPropagation();
+                                                                                                    e.preventDefault();
+                                                                                                    // Prevent unchecking if style is assigned to products
+                                                                                                    if (isChecked && isAssignedToProducts) {
+                                                                                                        return;
+                                                                                                    }
+                                                                                                    if (isChecked) {
+                                                                                                        field.onChange(styleIds.filter((id) => id !== style.id));
+                                                                                                    } else {
+                                                                                                        field.onChange([...styleIds, style.id]);
+                                                                                                    }
+                                                                                                }
+                                                                                            }}
+                                                                                            title={isAssignedToProducts && isChecked ? 'This style is assigned to products and cannot be removed' : ''}
+                                                                                        >
+                                                                                            <Checkbox
+                                                                                                checked={isChecked}
+                                                                                                disabled={isAssignedToProducts && isChecked}
+                                                                                                onChange={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    // Prevent unchecking if style is assigned to products
+                                                                                                    if (e.target.checked) {
+                                                                                                        field.onChange([...styleIds, style.id]);
+                                                                                                    } else {
+                                                                                                        if (!isAssignedToProducts) {
+                                                                                                            field.onChange(styleIds.filter((id) => id !== style.id));
+                                                                                                        }
+                                                                                                    }
+                                                                                                }}
+                                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                            />
+                                                                                            <span className={`text-xs sm:text-sm ${isAssignedToProducts && isChecked ? 'text-amber-700' : 'text-slate-700'}`}>
+                                                                                                {style.name}
+                                                                                                {isAssignedToProducts && isChecked && (
+                                                                                                    <span className="ml-1 text-[10px] text-amber-600">(in use)</span>
+                                                                                                )}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </Menu.Item>
+                                                                            );
+                                                                        })}
+                                                                    {styles.filter((style) =>
+                                                                        style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
+                                                                    ).length === 0 && (
+                                                                        <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-slate-400 text-center">No styles found</div>
+                                                                    )}
+                                                                </div>
+                                                            </Menu.Items>
+                                                        </Transition>
+                                                    </Menu>
+                                                );
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Sizes */}
+                                    <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
+                                        <div className="flex items-center justify-between">
+                                            <InputLabel>Sizes</InputLabel>
+                                            {watch('size_ids')?.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        // Keep only sizes that are assigned to products (locked sizes)
+                                                        const currentSizeIds = watch('size_ids') || [];
+                                                        const sizesToKeep = currentSizeIds.filter((id) => sizesAssignedToProducts.has(id));
+                                                        setValue('size_ids', sizesToKeep);
+                                                        trigger('size_ids');
+                                                    }}
+                                                    className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                                                    title={sizesAssignedToProducts.size > 0 ? 'Only removable sizes will be removed. Sizes assigned to products will remain.' : ''}
+                                                >
+                                                    Remove all
+                                                </button>
+                                            )}
+                                        </div>
+                                        <Controller
+                                            name="size_ids"
+                                            control={control}
+                                            render={({ field }) => {
+                                                const sizeIds = field.value || [];
+                                                if (!sizes || sizes.length === 0) {
+                                                    return (
+                                                        <div className="rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-400">
+                                                            No sizes available. Create sizes first in the Sizes section.
+                                                        </div>
+                                                    );
+                                                }
+                                                return (
+                                                    <Menu as="div" className="relative">
+                                                        <Menu.Button className="w-full min-h-[44px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-left text-xs sm:text-sm">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                {sizeIds.length > 0 ? (
+                                                                    sizeIds.map((sizeId) => {
+                                                                        const size = sizes.find((s) => s.id === sizeId);
+                                                                        if (!size) return null;
+                                                                        const isAssignedToProducts = sizesAssignedToProducts.has(sizeId);
+                                                                        return (
+                                                                            <span
+                                                                                key={sizeId}
+                                                                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium ${
+                                                                                    isAssignedToProducts
+                                                                                        ? 'bg-amber-100 text-amber-700'
+                                                                                        : 'bg-sky-100 text-sky-700'
+                                                                                }`}
+                                                                                title={isAssignedToProducts ? 'This size is assigned to products and cannot be removed' : ''}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                onMouseDown={(e) => e.stopPropagation()}
+                                                                            >
+                                                                                {size.name}
+                                                                                {!isAssignedToProducts && (
+                                                                                    <span
+                                                                                        role="button"
+                                                                                        tabIndex={0}
+                                                                                        onClick={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                            field.onChange(sizeIds.filter((id) => id !== sizeId));
+                                                                                        }}
+                                                                                        onMouseDown={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                            field.onChange(sizeIds.filter((id) => id !== sizeId));
+                                                                                        }}
+                                                                                        onKeyDown={(e) => {
+                                                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                                                e.preventDefault();
+                                                                                                e.stopPropagation();
+                                                                                                field.onChange(sizeIds.filter((id) => id !== sizeId));
+                                                                                            }
+                                                                                        }}
+                                                                                        className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                                                                                    >
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                                                        </svg>
+                                                                                    </span>
+                                                                                )}
+                                                                            </span>
+                                                                        );
+                                                                    })
+                                                                ) : (
+                                                                    <span className="text-slate-400">Select sizes</span>
+                                                                )}
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            </div>
+                                                        </Menu.Button>
+                                                        <Transition
+                                                            enter="transition ease-out duration-100"
+                                                            enterFrom="transform opacity-0 scale-95"
+                                                            enterTo="transform opacity-100 scale-100"
+                                                            leave="transition ease-in duration-75"
+                                                            leaveFrom="transform opacity-100 scale-100"
+                                                            leaveTo="transform opacity-0 scale-95"
+                                                        >
+                                                            <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                                <div className="p-2 border-b border-slate-200">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={sizeSearchQuery}
+                                                                        onChange={(e) => setSizeSearchQuery(e.target.value)}
+                                                                        placeholder="Search sizes..."
+                                                                        className="w-full rounded-lg sm:rounded-xl border border-slate-300 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    />
+                                                                </div>
+                                                                <div className="max-h-60 overflow-auto p-2">
+                                                                    {sizes
+                                                                        .filter((size) =>
+                                                                            size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
+                                                                        )
+                                                                        .map((size) => {
+                                                                            const isChecked = sizeIds.includes(size.id);
+                                                                            const isAssignedToProducts = sizesAssignedToProducts.has(size.id);
+                                                                            return (
+                                                                                <Menu.Item key={size.id}>
+                                                                                    {({ active }) => (
+                                                                                        <div
+                                                                                            className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 ${
+                                                                                                isAssignedToProducts && isChecked
+                                                                                                    ? 'cursor-not-allowed opacity-75'
+                                                                                                    : 'cursor-pointer'
+                                                                                            } ${active && !(isAssignedToProducts && isChecked) ? 'bg-slate-50' : ''}`}
+                                                                                            onClick={(e) => {
+                                                                                                if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                                                                                                    e.stopPropagation();
+                                                                                                    e.preventDefault();
+                                                                                                    // Prevent unchecking if size is assigned to products
+                                                                                                    if (isChecked && isAssignedToProducts) {
+                                                                                                        return;
+                                                                                                    }
+                                                                                                    if (isChecked) {
+                                                                                                        field.onChange(sizeIds.filter((id) => id !== size.id));
+                                                                                                    } else {
+                                                                                                        field.onChange([...sizeIds, size.id]);
+                                                                                                    }
+                                                                                                }
+                                                                                            }}
+                                                                                            title={isAssignedToProducts && isChecked ? 'This size is assigned to products and cannot be removed' : ''}
+                                                                                        >
+                                                                                            <Checkbox
+                                                                                                checked={isChecked}
+                                                                                                disabled={isAssignedToProducts && isChecked}
+                                                                                                onChange={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    // Prevent unchecking if size is assigned to products
+                                                                                                    if (e.target.checked) {
+                                                                                                        field.onChange([...sizeIds, size.id]);
+                                                                                                    } else {
+                                                                                                        if (!isAssignedToProducts) {
+                                                                                                            field.onChange(sizeIds.filter((id) => id !== size.id));
+                                                                                                        }
+                                                                                                    }
+                                                                                                }}
+                                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                            />
+                                                                                            <span className={`text-xs sm:text-sm ${isAssignedToProducts && isChecked ? 'text-amber-700' : 'text-slate-700'}`}>
+                                                                                                {size.name}
+                                                                                                {isAssignedToProducts && isChecked && (
+                                                                                                    <span className="ml-1 text-[10px] text-amber-600">(in use)</span>
+                                                                                                )}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </Menu.Item>
+                                                                            );
+                                                                        })}
+                                                                    {sizes.filter((size) =>
+                                                                        size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
+                                                                    ).length === 0 && (
+                                                                        <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-slate-400 text-center">No sizes found</div>
+                                                                    )}
+                                                                </div>
+                                                            </Menu.Items>
+                                                        </Transition>
+                                                    </Menu>
+                                                );
+                                            }}
+                                        />
+                                    </div>
+
                                 </div>
                             </div>
                         </form>

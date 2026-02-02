@@ -5,6 +5,13 @@ import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import { toastError } from '@/utils/toast';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { makingChargeDiscountSchema, MakingChargeDiscountFormData } from '@/lib/validation/admin.schema';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
+import Checkbox from '@/components/ui/Checkbox';
 
 type DiscountRow = {
     id: number;
@@ -70,21 +77,36 @@ export default function AdminMakingChargeDiscountsIndex() {
         [userGroups],
     );
 
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        discount_type: defaultDiscountType,
-        value: '',
-        brand_id: '',
-        category_id: '',
-        user_group_id: '',
-        user_types: [] as string[],
-        min_cart_total: '',
-        is_auto: true,
-        is_active: true,
-        starts_at: '',
-        ends_at: '',
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setValue,
+        watch,
+    } = useForm<MakingChargeDiscountFormData>({
+        resolver: zodResolver(makingChargeDiscountSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onBlur',
+        shouldFocusError: true,
+        defaultValues: {
+            name: '',
+            description: '',
+            discount_type: defaultDiscountType,
+            value: 0,
+            brand_id: null,
+            category_id: null,
+            user_group_id: null,
+            user_types: [],
+            min_cart_total: null,
+            is_auto: true,
+            is_active: true,
+            starts_at: '',
+            ends_at: '',
+        },
     });
+
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
@@ -142,16 +164,16 @@ export default function AdminMakingChargeDiscountsIndex() {
 
     const resetForm = () => {
         setEditingDiscount(null);
-        setFormData({
+        reset({
             name: '',
             description: '',
             discount_type: defaultDiscountType,
-            value: '',
-            brand_id: '',
-            category_id: '',
-            user_group_id: '',
+            value: 0,
+            brand_id: null,
+            category_id: null,
+            user_group_id: null,
             user_types: [],
-            min_cart_total: '',
+            min_cart_total: null,
             is_auto: true,
             is_active: true,
             starts_at: '',
@@ -161,16 +183,16 @@ export default function AdminMakingChargeDiscountsIndex() {
 
     const populateForm = (discount: DiscountRow) => {
         setEditingDiscount(discount);
-        setFormData({
+        reset({
             name: discount.name,
             description: discount.description ?? '',
             discount_type: discount.discount_type,
-            value: String(discount.value),
-            brand_id: discount.brand ? String(discount.brand.id) : '',
-            category_id: discount.category ? String(discount.category.id) : '',
-            user_group_id: discount.customer_group ? String(discount.customer_group.id) : '',
+            value: discount.value,
+            brand_id: discount.brand?.id ?? null,
+            category_id: discount.category?.id ?? null,
+            user_group_id: discount.customer_group?.id ?? null,
             user_types: discount.user_types ?? [],
-            min_cart_total: discount.min_cart_total != null ? String(discount.min_cart_total) : '',
+            min_cart_total: discount.min_cart_total ?? null,
             is_auto: discount.is_auto,
             is_active: discount.is_active,
             starts_at: discount.starts_at ? discount.starts_at.split('T')[0] : '',
@@ -178,20 +200,19 @@ export default function AdminMakingChargeDiscountsIndex() {
         });
     };
 
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const submit = async (formData: MakingChargeDiscountFormData) => {
         setProcessing(true);
         try {
             const payload: any = {
                 name: formData.name,
                 description: formData.description || null,
                 discount_type: formData.discount_type,
-                value: Number(formData.value || 0),
-                brand_id: formData.brand_id ? Number(formData.brand_id) : null,
-                category_id: formData.category_id ? Number(formData.category_id) : null,
-                user_group_id: formData.user_group_id ? Number(formData.user_group_id) : null,
+                value: formData.value,
+                brand_id: formData.brand_id ?? null,
+                category_id: formData.category_id ?? null,
+                user_group_id: formData.user_group_id ?? null,
                 user_types: formData.user_types.length ? formData.user_types : null,
-                min_cart_total: formData.min_cart_total ? Number(formData.min_cart_total) : null,
+                min_cart_total: formData.min_cart_total ?? null,
                 is_auto: formData.is_auto,
                 is_active: formData.is_active,
                 starts_at: formData.starts_at || null,
@@ -309,7 +330,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                 </div>
 
                 <form
-                    onSubmit={submit}
+                    onSubmit={handleFormSubmit(submit)}
                     className="space-y-4 sm:space-y-6 rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80"
                 >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -328,177 +349,293 @@ export default function AdminMakingChargeDiscountsIndex() {
                     </div>
 
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Name</span>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                                required
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="name" className="text-xs sm:text-sm text-slate-600 font-normal">Name</InputLabel>
+                            <Controller
+                                name="name"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <TextInput
+                                        {...field}
+                                        id="name"
+                                        className={fieldState.error || errors.name ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                    />
+                                )}
                             />
-                        </label>
+                            <InputError message={errors.name?.message} />
+                        </div>
 
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Discount type</span>
-                            <select
-                                value={formData.discount_type}
-                                onChange={(event) => setFormData({ ...formData, discount_type: event.target.value as 'percentage' | 'fixed' })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                            >
-                                {discountTypes.map((type) => (
-                                    <option key={type} value={type}>
-                                        {type === 'percentage' ? 'Percentage (%)' : 'Flat amount (₹)'}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Discount value</span>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.value}
-                                onChange={(event) => setFormData({ ...formData, value: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                                required
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="discount_type" className="text-xs sm:text-sm text-slate-600 font-normal">Discount type</InputLabel>
+                            <Controller
+                                name="discount_type"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <select
+                                            {...field}
+                                            id="discount_type"
+                                            className={`rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
+                                                fieldState.error || errors.discount_type ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                            }`}
+                                        >
+                                            {discountTypes.map((type) => (
+                                                <option key={type} value={type}>
+                                                    {type === 'percentage' ? 'Percentage (%)' : 'Flat amount (₹)'}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.discount_type && (
+                                            <InputError message={errors.discount_type.message} />
+                                        )}
+                                    </>
+                                )}
                             />
-                        </label>
+                        </div>
 
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Minimum order total (₹)</span>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.min_cart_total}
-                                onChange={(event) => setFormData({ ...formData, min_cart_total: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                                placeholder="Optional threshold"
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="value" className="text-xs sm:text-sm text-slate-600 font-normal">Discount value</InputLabel>
+                            <Controller
+                                name="value"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <TextInput
+                                        {...field}
+                                        id="value"
+                                        type="number"
+                                        step="0.01"
+                                        value={field.value === 0 ? '' : String(field.value)}
+                                        onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                                        className={fieldState.error || errors.value ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                    />
+                                )}
                             />
-                        </label>
+                            <InputError message={errors.value?.message} />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="min_cart_total" className="text-xs sm:text-sm text-slate-600 font-normal">Minimum order total (₹)</InputLabel>
+                            <Controller
+                                name="min_cart_total"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <TextInput
+                                        {...field}
+                                        id="min_cart_total"
+                                        type="number"
+                                        step="0.01"
+                                        value={field.value === null ? '' : String(field.value)}
+                                        onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                        className={fieldState.error || errors.min_cart_total ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                        placeholder="Optional threshold"
+                                    />
+                                )}
+                            />
+                            <InputError message={errors.min_cart_total?.message} />
+                        </div>
                     </div>
 
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-3">
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Brand</span>
-                            <select
-                                value={formData.brand_id}
-                                onChange={(event) => setFormData({ ...formData, brand_id: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                            >
-                                <option value="">All brands</option>
-                                {brands.map((brand) => (
-                                    <option key={brand.id} value={brand.id}>
-                                        {brand.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Category</span>
-                            <select
-                                value={formData.category_id}
-                                onChange={(event) => setFormData({ ...formData, category_id: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                            >
-                                <option value="">All categories</option>
-                                {categories.map((category) => (
-                                    <option key={category.id} value={category.id}>
-                                        {category.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Customer group</span>
-                            <select
-                                value={formData.user_group_id}
-                                onChange={(event) => setFormData({ ...formData, user_group_id: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                            >
-                                <option value="">All customer groups</option>
-                                {userGroups.map((group) => (
-                                    <option key={group.id} value={group.id}>
-                                        {group.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="brand_id" className="text-xs sm:text-sm text-slate-600 font-normal">Brand</InputLabel>
+                            <Controller
+                                name="brand_id"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <select
+                                            {...field}
+                                            id="brand_id"
+                                            value={field.value === null ? '' : String(field.value)}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                            className={`rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
+                                                fieldState.error || errors.brand_id ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                            }`}
+                                        >
+                                            <option value="">All brands</option>
+                                            {brands.map((brand) => (
+                                                <option key={brand.id} value={brand.id}>
+                                                    {brand.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.brand_id && (
+                                            <InputError message={errors.brand_id.message} />
+                                        )}
+                                    </>
+                                )}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="category_id" className="text-xs sm:text-sm text-slate-600 font-normal">Category</InputLabel>
+                            <Controller
+                                name="category_id"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <select
+                                            {...field}
+                                            id="category_id"
+                                            value={field.value === null ? '' : String(field.value)}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                            className={`rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
+                                                fieldState.error || errors.category_id ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                            }`}
+                                        >
+                                            <option value="">All categories</option>
+                                            {categories.map((category) => (
+                                                <option key={category.id} value={category.id}>
+                                                    {category.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.category_id && (
+                                            <InputError message={errors.category_id.message} />
+                                        )}
+                                    </>
+                                )}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="user_group_id" className="text-xs sm:text-sm text-slate-600 font-normal">Customer group</InputLabel>
+                            <Controller
+                                name="user_group_id"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <select
+                                            {...field}
+                                            id="user_group_id"
+                                            value={field.value === null ? '' : String(field.value)}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                            className={`rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
+                                                fieldState.error || errors.user_group_id ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                            }`}
+                                        >
+                                            <option value="">All customer groups</option>
+                                            {userGroups.map((group) => (
+                                                <option key={group.id} value={group.id}>
+                                                    {group.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.user_group_id && (
+                                            <InputError message={errors.user_group_id.message} />
+                                        )}
+                                    </>
+                                )}
+                            />
+                        </div>
                     </div>
 
                     <fieldset className="rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3">
                         <legend className="px-2 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
                             Eligible customer types
                         </legend>
-                        <div className="mt-2 sm:mt-3 flex flex-wrap gap-3 sm:gap-4">
-                            {userTypes.map((type) => {
-                                const checked = formData.user_types.includes(type.value);
-                                return (
-                                    <label key={type.value} className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                                        <input
-                                            type="checkbox"
-                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                            checked={checked}
-                                            onChange={(event) => {
-                                                if (event.target.checked) {
-                                                    setFormData({ ...formData, user_types: [...formData.user_types, type.value] });
-                                                } else {
-                                                    setFormData({
-                                                        ...formData,
-                                                        user_types: formData.user_types.filter((value) => value !== type.value),
-                                                    });
-                                                }
-                                            }}
-                                        />
-                                        <span className="uppercase tracking-wide text-slate-500 text-xs sm:text-sm">{type.label}</span>
-                                    </label>
-                                );
-                            })}
-                        </div>
+                        <Controller
+                            name="user_types"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="mt-2 sm:mt-3 flex flex-wrap gap-3 sm:gap-4">
+                                    {userTypes.map((type) => {
+                                        const checked = field.value.includes(type.value);
+                                        return (
+                                            <label key={type.value} className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    checked={checked}
+                                                    onChange={(event) => {
+                                                        if (event.target.checked) {
+                                                            field.onChange([...field.value, type.value]);
+                                                        } else {
+                                                            field.onChange(field.value.filter((value) => value !== type.value));
+                                                        }
+                                                    }}
+                                                />
+                                                <span className="uppercase tracking-wide text-slate-500 text-xs sm:text-sm">{type.label}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        />
+                        <InputError message={errors.user_types?.message} />
                     </fieldset>
 
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Start date</span>
-                            <input
-                                type="date"
-                                value={formData.starts_at}
-                                onChange={(event) => setFormData({ ...formData, starts_at: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="starts_at" className="text-xs sm:text-sm text-slate-600 font-normal">Start date</InputLabel>
+                            <Controller
+                                name="starts_at"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <input
+                                        {...field}
+                                        id="starts_at"
+                                        type="date"
+                                        className={`rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm ${
+                                            fieldState.error || errors.starts_at ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
+                                    />
+                                )}
                             />
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>End date</span>
-                            <input
-                                type="date"
-                                value={formData.ends_at}
-                                onChange={(event) => setFormData({ ...formData, ends_at: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
+                            <InputError message={errors.starts_at?.message} />
+                        </div>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="ends_at" className="text-xs sm:text-sm text-slate-600 font-normal">End date</InputLabel>
+                            <Controller
+                                name="ends_at"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <input
+                                        {...field}
+                                        id="ends_at"
+                                        type="date"
+                                        className={`rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm ${
+                                            fieldState.error || errors.ends_at ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
+                                    />
+                                )}
                             />
-                        </label>
+                            <InputError message={errors.ends_at?.message} />
+                        </div>
                     </div>
 
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
-                        <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
-                            <input
-                                type="checkbox"
-                                checked={formData.is_auto}
-                                onChange={(event) => setFormData({ ...formData, is_auto: event.target.checked })}
-                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                        <div>
+                            <Controller
+                                name="is_auto"
+                                control={control}
+                                render={({ field }) => (
+                                    <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
+                                        <Checkbox
+                                            checked={field.value}
+                                            onChange={field.onChange}
+                                        />
+                                        Auto apply during quotation & checkout
+                                    </label>
+                                )}
                             />
-                            Auto apply during quotation & checkout
-                        </label>
+                            <InputError message={errors.is_auto?.message} />
+                        </div>
 
-                        <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
-                            <input
-                                type="checkbox"
-                                checked={formData.is_active}
-                                onChange={(event) => setFormData({ ...formData, is_active: event.target.checked })}
-                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                        <div>
+                            <Controller
+                                name="is_active"
+                                control={control}
+                                render={({ field }) => (
+                                    <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
+                                        <Checkbox
+                                            checked={field.value}
+                                            onChange={field.onChange}
+                                        />
+                                        Active
+                                    </label>
+                                )}
                             />
-                            Active
-                        </label>
+                            <InputError message={errors.is_active?.message} />
+                        </div>
                     </div>
 
                     <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">

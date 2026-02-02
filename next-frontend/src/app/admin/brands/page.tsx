@@ -4,10 +4,17 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
+import TextInput from "@/components/ui/TextInput";
+import InputLabel from "@/components/ui/InputLabel";
+import InputError from "@/components/ui/InputError";
+import Checkbox from "@/components/ui/Checkbox";
 import { adminService } from "@/services/adminService";
-import { PaginationMeta, PaginationLink, generatePaginationLinks } from "@/utils/pagination";
+import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 import { toastError } from "@/utils/toast";
 import { getMediaUrlNullable } from "@/utils/mediaUrl";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { brandSchema, BrandFormData } from "@/lib/validation/admin.schema";
 
 type BrandRow = {
     id: number;
@@ -39,12 +46,26 @@ export default function AdminBrandsPage() {
     const [removeCoverImage, setRemoveCoverImage] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [formState, setFormState] = useState({
-        code: '',
-        name: '',
-        description: '',
-        is_active: true,
-        display_order: 0,
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        trigger,
+    } = useForm<BrandFormData>({
+        resolver: zodResolver(brandSchema),
+        mode: "onSubmit", // Validate all fields on submit
+        reValidateMode: "onBlur", // Re-validate on blur after first validation
+        shouldFocusError: true, // Automatically focus first error field on submit
+        defaultValues: {
+            code: '',
+            name: '',
+            description: '',
+            is_active: true,
+            display_order: 0,
+        },
     });
 
     useEffect(() => {
@@ -110,7 +131,7 @@ export default function AdminBrandsPage() {
     const resetForm = () => {
         setEditingBrand(null);
         setModalOpen(false);
-        setFormState({
+        reset({
             code: '',
             name: '',
             description: '',
@@ -133,7 +154,7 @@ export default function AdminBrandsPage() {
 
     const openEditModal = (brand: BrandRow) => {
         setEditingBrand(brand);
-        setFormState({
+        reset({
             code: brand.code ?? '',
             name: brand.name,
             description: brand.description ?? '',
@@ -180,17 +201,16 @@ export default function AdminBrandsPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: BrandFormData) => {
         setLoading(true);
 
         try {
             const formData = new FormData();
-            formData.append('name', formState.name);
-            if (formState.code) formData.append('code', formState.code);
-            if (formState.description) formData.append('description', formState.description);
-            formData.append('is_active', String(formState.is_active));
-            formData.append('display_order', String(formState.display_order));
+            formData.append('name', data.name);
+            if (data.code) formData.append('code', data.code);
+            if (data.description) formData.append('description', data.description);
+            formData.append('is_active', String(data.is_active));
+            formData.append('display_order', String(data.display_order));
             
             const coverFile = fileInputRef.current?.files?.[0];
             if (coverFile) {
@@ -208,7 +228,32 @@ export default function AdminBrandsPage() {
             await loadBrands();
         } catch (error: any) {
             console.error('Failed to save brand:', error);
-            toastError(error.response?.data?.message || 'Failed to save brand. Please try again.');
+            
+            // Handle field-level validation errors (400)
+            if (error?.response?.data?.errors && typeof error.response.data.errors === 'object') {
+                Object.keys(error.response.data.errors).forEach((field) => {
+                    const fieldErrors = error.response.data.errors[field];
+                    const message = Array.isArray(fieldErrors) ? fieldErrors[0] : fieldErrors;
+                    if (message && (field === 'code' || field === 'name' || field === 'description' || field === 'display_order')) {
+                        setError(field as keyof BrandFormData, {
+                            type: 'server',
+                            message: typeof message === 'string' ? message : String(message),
+                        });
+                    }
+                });
+            } else {
+                // Handle single error message - prioritize message field from API
+                const errorMessage = error?.response?.data?.message || 
+                                     (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                                     error?.response?.data?.error?.[0]?.message ||
+                                     error?.message || 
+                                     'Failed to save brand. Please try again.';
+                setError('root', {
+                    type: 'server',
+                    message: errorMessage,
+                });
+                toastError(errorMessage);
+            }
         } finally {
             setLoading(false);
         }
@@ -260,7 +305,7 @@ export default function AdminBrandsPage() {
     if (loading && !brands.data.length) return null;
 
     return (
-        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8 px-1">
             <div className="flex flex-col gap-3 rounded-2xl bg-white p-3 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80 sm:flex-row sm:items-center sm:justify-between sm:rounded-3xl sm:p-6">
                 <div>
                     <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Brands</h1>
@@ -433,54 +478,105 @@ export default function AdminBrandsPage() {
                     </div>
 
                     <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-5">
-                        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 lg:space-y-6" id="brand-form">
+                        <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4 sm:space-y-5 lg:space-y-6" id="brand-form">
                             <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6">
                                 <div className="space-y-4 sm:space-y-5 lg:space-y-6">
                                     <div className="grid gap-4 sm:gap-5">
-                                        <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
-                                            <span>Code <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="text"
-                                                value={formState.code}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value }))}
-                                                className="rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 sm:rounded-xl sm:px-4 sm:py-2"
-                                                placeholder="e.g., BRD001"
-                                                required
-                                            />
-                                        </label>
-                                        <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
-                                            <span>Name <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="text"
-                                                value={formState.name}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                                                className="rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 sm:rounded-xl sm:px-4 sm:py-2"
-                                                required
-                                            />
-                                        </label>
-                                        <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
-                                            <span>Display order <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="number"
-                                                value={formState.display_order}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    setFormState(prev => ({ ...prev, display_order: value === '' ? 0 : Number(value) }));
-                                                }}
-                                                onBlur={(e) => {
-                                                    if (e.target.value === '') {
-                                                        setFormState(prev => ({ ...prev, display_order: 0 }));
-                                                    }
-                                                }}
-                                                onFocus={(e) => {
-                                                    if (e.target.value === '0') {
-                                                        e.target.select();
-                                                    }
-                                                }}
-                                                className="rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 sm:rounded-xl sm:px-4 sm:py-2"
-                                                required
-                                            />
-                                        </label>
+                                        <Controller
+                                            name="code"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <div>
+                                                    <InputLabel htmlFor="code" value="Code" className="text-xs text-slate-600 sm:text-sm">
+                                                        Code <span className="text-rose-500">*</span>
+                                                    </InputLabel>
+                                                    <TextInput
+                                                        id="code"
+                                                        type="text"
+                                                        {...field}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            if (fieldState.error) {
+                                                                trigger('code');
+                                                            }
+                                                        }}
+                                                        onBlur={async (e) => {
+                                                            field.onBlur();
+                                                            await trigger('code');
+                                                        }}
+                                                        className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        placeholder="e.g., BRD001"
+                                                    />
+                                                    <InputError message={fieldState.error?.message} className="mt-2" />
+                                                </div>
+                                            )}
+                                        />
+                                        <Controller
+                                            name="name"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <div>
+                                                    <InputLabel htmlFor="name" value="Name" className="text-xs text-slate-600 sm:text-sm">
+                                                        Name <span className="text-rose-500">*</span>
+                                                    </InputLabel>
+                                                    <TextInput
+                                                        id="name"
+                                                        type="text"
+                                                        {...field}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            if (fieldState.error) {
+                                                                trigger('name');
+                                                            }
+                                                        }}
+                                                        onBlur={async (e) => {
+                                                            field.onBlur();
+                                                            await trigger('name');
+                                                        }}
+                                                        className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    />
+                                                    <InputError message={fieldState.error?.message} className="mt-2" />
+                                                </div>
+                                            )}
+                                        />
+                                        <Controller
+                                            name="display_order"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <div>
+                                                    <InputLabel htmlFor="display_order" value="Display order" className="text-xs text-slate-600 sm:text-sm">
+                                                        Display order <span className="text-rose-500">*</span>
+                                                    </InputLabel>
+                                                    <TextInput
+                                                        id="display_order"
+                                                        type="number"
+                                                        {...field}
+                                                        value={field.value || 0}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                            field.onChange(value);
+                                                            if (fieldState.error) {
+                                                                trigger('display_order');
+                                                            }
+                                                        }}
+                                                        onBlur={async (e) => {
+                                                            if (e.target.value === '') {
+                                                                field.onChange(0);
+                                                            }
+                                                            field.onBlur();
+                                                            await trigger('display_order');
+                                                        }}
+                                                        onFocus={(e) => {
+                                                            if (e.target.value === '0') {
+                                                                e.target.select();
+                                                            }
+                                                        }}
+                                                        className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    />
+                                                    <InputError message={fieldState.error?.message} className="mt-2" />
+                                                </div>
+                                            )}
+                                        />
                                         <label className="flex flex-col gap-2 text-xs text-slate-600 sm:gap-3 sm:text-sm">
                                             <span>Cover Image</span>
                                             <input
@@ -536,26 +632,49 @@ export default function AdminBrandsPage() {
                                             )}
                                         </label>
                                     </div>
-                                    <label className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-3 text-xs text-slate-600 sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
-                                        <input
-                                            type="checkbox"
-                                            checked={formState.is_active}
-                                            onChange={(e) => setFormState(prev => ({ ...prev, is_active: e.target.checked }))}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                        />
-                                        Active for selection
-                                    </label>
+                                    <Controller
+                                        name="is_active"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <label className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-3 text-xs text-slate-600 sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onChange={field.onChange}
+                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                />
+                                                Active for selection
+                                            </label>
+                                        )}
+                                    />
                                 </div>
                                 <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-                                    <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
-                                        <span>Description</span>
-                                        <textarea
-                                            value={formState.description}
-                                            onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                            className="min-h-[140px] rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 sm:min-h-[160px] sm:rounded-xl sm:px-4 sm:py-2 lg:min-h-[200px]"
-                                            placeholder="Optional notes for team."
-                                        />
-                                    </label>
+                                    <Controller
+                                        name="description"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <div>
+                                                <InputLabel htmlFor="description" value="Description" className="text-xs text-slate-600 sm:text-sm" />
+                                                <textarea
+                                                    id="description"
+                                                    {...field}
+                                                    value={field.value || ''}
+                                                    onChange={(e) => {
+                                                        field.onChange(e);
+                                                        if (fieldState.error) {
+                                                            trigger('description');
+                                                        }
+                                                    }}
+                                                    onBlur={async (e) => {
+                                                        field.onBlur();
+                                                        await trigger('description');
+                                                    }}
+                                                    className={`mt-1 min-h-[140px] w-full rounded-lg border bg-white text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 sm:min-h-[160px] sm:rounded-xl sm:px-4 sm:py-2 lg:min-h-[200px] ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900'}`}
+                                                    placeholder="Optional notes for team."
+                                                />
+                                                <InputError message={fieldState.error?.message} className="mt-2" />
+                                            </div>
+                                        )}
+                                    />
                                 </div>
                             </div>
                         </form>

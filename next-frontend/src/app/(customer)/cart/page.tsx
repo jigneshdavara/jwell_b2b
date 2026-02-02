@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import React from 'react';
 import Modal from '@/components/ui/Modal';
 import Pagination from '@/components/ui/Pagination';
 import { route } from '@/utils/route';
@@ -20,8 +20,6 @@ const currencyFormatter = (currency: string) =>
         currency,
         maximumFractionDigits: 0,
     });
-
-// Helper to get media URL
 
 export default function CartPage() {
     const router = useRouter();

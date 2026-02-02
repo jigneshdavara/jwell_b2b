@@ -7,6 +7,7 @@ import {
     IsDateString,
     IsInt,
     IsArray,
+    ValidateIf,
 } from 'class-validator';
 
 export class CreateMakingChargeDiscountDto {
@@ -27,16 +28,19 @@ export class CreateMakingChargeDiscountDto {
     value: number;
 
     @IsInt()
+    @ValidateIf((o) => o.brand_id !== null && o.brand_id !== undefined)
     @IsOptional()
-    brand_id?: number;
+    brand_id?: number | null;
 
     @IsInt()
+    @ValidateIf((o) => o.category_id !== null && o.category_id !== undefined)
     @IsOptional()
-    category_id?: number;
+    category_id?: number | null;
 
     @IsInt()
+    @ValidateIf((o) => o.user_group_id !== null && o.user_group_id !== undefined)
     @IsOptional()
-    user_group_id?: number;
+    user_group_id?: number | null;
 
     @IsNumber()
     @IsOptional()
@@ -81,16 +85,19 @@ export class UpdateMakingChargeDiscountDto {
     value?: number;
 
     @IsInt()
+    @ValidateIf((o) => o.brand_id !== null && o.brand_id !== undefined)
     @IsOptional()
-    brand_id?: number;
+    brand_id?: number | null;
 
     @IsInt()
+    @ValidateIf((o) => o.category_id !== null && o.category_id !== undefined)
     @IsOptional()
-    category_id?: number;
+    category_id?: number | null;
 
     @IsInt()
+    @ValidateIf((o) => o.user_group_id !== null && o.user_group_id !== undefined)
     @IsOptional()
-    user_group_id?: number;
+    user_group_id?: number | null;
 
     @IsNumber()
     @IsOptional()

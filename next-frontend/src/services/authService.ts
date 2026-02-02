@@ -10,9 +10,8 @@ export const authService = {
         if (response.data.access_token) {
             // Store token only, no user data
             tokenService.setToken(response.data.access_token);
-
-            // Refresh token to ensure it's valid
-            await tokenService.refreshToken();
+            // Note: Don't call refreshToken() here - the token from login is already valid
+            // Calling refreshToken() might fail and mask the actual login error
         }
         return response;
     },

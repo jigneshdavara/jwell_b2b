@@ -145,6 +145,20 @@ export default function AdminProductsPage() {
     return selectedProducts.length === data.products.data.length;
   }, [data.products.data, selectedProducts]);
 
+  // Check if all selected products are active
+  const allSelectedActive = useMemo(() => {
+    if (selectedProducts.length === 0) return false;
+    const selectedProductsData = data.products.data.filter((p: any) => selectedProducts.includes(p.id));
+    return selectedProductsData.length > 0 && selectedProductsData.every((p: any) => p.is_active === true);
+  }, [selectedProducts, data.products.data]);
+
+  // Check if all selected products are inactive
+  const allSelectedInactive = useMemo(() => {
+    if (selectedProducts.length === 0) return false;
+    const selectedProductsData = data.products.data.filter((p: any) => selectedProducts.includes(p.id));
+    return selectedProductsData.length > 0 && selectedProductsData.every((p: any) => p.is_active === false);
+  }, [selectedProducts, data.products.data]);
+
   const toggleSelectAll = () => {
     if (allSelected) {
       setSelectedProducts([]);
@@ -202,6 +216,7 @@ export default function AdminProductsPage() {
         await adminService.bulkUpdateProductStatus(selectedProducts, action === 'activate');
         setSelectedProducts([]);
         await fetchProducts();
+        toastSuccess(`Successfully ${action === 'activate' ? 'activated' : 'deactivated'} ${selectedProducts.length} product(s).`);
       } catch (error: any) {
         toastError(error.response?.data?.message || "Failed to update product status. Please try again.");
       }
@@ -341,16 +356,18 @@ export default function AdminProductsPage() {
             <button
               type="button"
               onClick={() => bulkStatus("activate")}
-              disabled={selectedProducts.length === 0}
+              disabled={selectedProducts.length === 0 || allSelectedActive}
               className="rounded-full border border-emerald-200 px-2.5 py-1 sm:px-3 text-emerald-600 transition hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title={allSelectedActive ? "All selected products are already active" : ""}
             >
               Enable
             </button>
             <button
               type="button"
               onClick={() => bulkStatus("deactivate")}
-              disabled={selectedProducts.length === 0}
+              disabled={selectedProducts.length === 0 || allSelectedInactive}
               className="rounded-full border border-amber-200 px-2.5 py-1 sm:px-3 text-amber-600 transition hover:border-amber-300 hover:text-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title={allSelectedInactive ? "All selected products are already inactive" : ""}
             >
               Disable
             </button>

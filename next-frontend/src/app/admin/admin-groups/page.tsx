@@ -4,9 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
+import TextInput from "@/components/ui/TextInput";
+import InputLabel from "@/components/ui/InputLabel";
+import InputError from "@/components/ui/InputError";
+import Checkbox from "@/components/ui/Checkbox";
 import { adminService } from "@/services/adminService";
 import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
-import { toastError } from "@/utils/toast";
+import { toastError, toastSuccess } from "@/utils/toast";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { adminGroupSchema, AdminGroupFormData } from "@/lib/validation/admin.schema";
 
 type AdminGroupRow = {
     id: number;
@@ -73,13 +80,28 @@ export default function AdminAdminGroupsPage() {
         { value: 'settings.manage', label: 'Configure settings' },
     ];
 
-    const [formState, setFormState] = useState({
-        name: '',
-        code: '',
-        description: '',
-        is_active: true,
-        display_order: 0 as number | '',
-        features: [] as string[],
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        trigger,
+        watch,
+    } = useForm<AdminGroupFormData>({
+        resolver: zodResolver(adminGroupSchema),
+        mode: "onSubmit",
+        reValidateMode: "onBlur",
+        shouldFocusError: true,
+        defaultValues: {
+            name: '',
+            code: '',
+            description: '',
+            is_active: true,
+            display_order: 0,
+            features: [],
+        },
     });
 
     useEffect(() => {
@@ -151,12 +173,12 @@ export default function AdminAdminGroupsPage() {
     const resetForm = () => {
         setEditingGroup(null);
         setModalOpen(false);
-        setFormState({
+        reset({
             name: '',
             code: '',
             description: '',
             is_active: true,
-            display_order: 0 as number | '',
+            display_order: 0,
             features: [],
         });
     };
@@ -168,7 +190,7 @@ export default function AdminAdminGroupsPage() {
 
     const openEditModal = (group: AdminGroupRow) => {
         setEditingGroup(group);
-        setFormState({
+        reset({
             name: group.name,
             code: group.code || '',
             description: group.description ?? '',
@@ -179,50 +201,50 @@ export default function AdminAdminGroupsPage() {
         setModalOpen(true);
     };
 
-    const toggleFeature = (value: string, checked: boolean) => {
-        setFormState(prev => ({
-            ...prev,
-            features: checked
-                ? [...prev.features, value]
-                : prev.features.filter(f => f !== value),
-        }));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: AdminGroupFormData) => {
         setLoading(true);
 
         try {
-            // Auto-generate code from name if empty (for new groups)
-            const generateCode = (name: string) => {
-                return name
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, '_')
-                    .replace(/^_+|_+$/g, '')
-                    .toUpperCase();
-            };
-
-            const code = formState.code || generateCode(formState.name);
-
             const payload = {
-                name: formState.name,
-                code: code,
-                description: formState.description || null,
-                is_active: formState.is_active,
-                display_order: Number(formState.display_order) || 0,
-                features: formState.features,
+                name: data.name,
+                code: data.code,
+                description: data.description || null,
+                is_active: data.is_active,
+                display_order: data.display_order,
+                features: data.features,
             };
 
             if (editingGroup) {
                 await adminService.updateAdminGroup(editingGroup.id, payload);
+                toastSuccess('Admin group updated successfully.');
             } else {
                 await adminService.createAdminGroup(payload);
+                toastSuccess('Admin group created successfully.');
             }
             resetForm();
             await loadGroups();
         } catch (error: any) {
-            console.error('Failed to save admin group:', error);
-            toastError(error.response?.data?.message || 'Failed to save admin group. Please try again.');
+            // Handle field-level errors
+            if (error.response?.data?.errors) {
+                const fieldErrors = error.response.data.errors;
+                Object.keys(fieldErrors).forEach((key) => {
+                    const errorMessage = Array.isArray(fieldErrors[key]) 
+                        ? fieldErrors[key][0] 
+                        : fieldErrors[key];
+                    setError(key as keyof AdminGroupFormData, {
+                        type: 'server',
+                        message: errorMessage,
+                    });
+                });
+            }
+            
+            // Show error message in FlashMessage (prioritize message field)
+            const errorMessage = error.response?.data?.message 
+                ? (Array.isArray(error.response.data.message) 
+                    ? error.response.data.message.join(', ') 
+                    : error.response.data.message)
+                : 'Failed to save admin group. Please try again.';
+            toastError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -780,102 +802,184 @@ export default function AdminAdminGroupsPage() {
                     </div>
 
                     <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
-                        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" id="group-form">
+                        <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4 sm:space-y-6" id="group-form">
                             <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                                 <div className="space-y-4 sm:space-y-6">
                                     <div className="grid gap-3 sm:gap-4">
-                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Name</span>
-                                            <input
-                                                type="text"
-                                                value={formState.name}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                required
+                                        {/* Name */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="name">Name</InputLabel>
+                                            <Controller
+                                                name="name"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="name"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                trigger('name');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('name');
+                                                            }}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                        </label>
-                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Code</span>
-                                            <input
-                                                type="text"
-                                                value={formState.code}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 font-mono text-xs sm:text-sm"
-                                                placeholder="e.g., ADMIN, MANAGER"
+                                        </div>
+
+                                        {/* Code */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="code">Code</InputLabel>
+                                            <Controller
+                                                name="code"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="code"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e.target.value.toUpperCase());
+                                                                trigger('code');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('code');
+                                                            }}
+                                                            placeholder="e.g., ADMIN, MANAGER"
+                                                            className={`mt-1 font-mono ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                        </label>
-                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Display order</span>
-                                            <input
-                                                type="number"
-                                                value={formState.display_order}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    setFormState(prev => ({ 
-                                                        ...prev, 
-                                                        display_order: value === '' ? '' : Number(value) 
-                                                    }));
-                                                }}
-                                                onBlur={(e) => {
-                                                    if (e.target.value === '') {
-                                                        setFormState(prev => ({ 
-                                                            ...prev, 
-                                                            display_order: 0 
-                                                        }));
-                                                    }
-                                                }}
-                                                onFocus={(e) => {
-                                                    if (e.target.value === '0') {
-                                                        e.target.select();
-                                                    }
-                                                }}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                min={0}
+                                        </div>
+
+                                        {/* Display Order */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="display_order">Display order</InputLabel>
+                                            <Controller
+                                                name="display_order"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="display_order"
+                                                            type="number"
+                                                            value={field.value?.toString() || '0'}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                field.onChange(value);
+                                                                trigger('display_order');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('display_order');
+                                                            }}
+                                                            onFocus={(e) => {
+                                                                if (e.target.value === '0') {
+                                                                    e.target.select();
+                                                                }
+                                                            }}
+                                                            min={0}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                        </label>
+                                        </div>
                                     </div>
-                                    <label className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
-                                        <input
-                                            type="checkbox"
-                                            checked={formState.is_active}
-                                            onChange={(e) => setFormState(prev => ({ ...prev, is_active: e.target.checked }))}
-                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+
+                                    {/* Is Active */}
+                                    <div className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3">
+                                        <Controller
+                                            name="is_active"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onChange={(e) => field.onChange(e.target.checked)}
+                                                />
+                                            )}
                                         />
-                                        Active for assignment
-                                    </label>
+                                        <InputLabel htmlFor="is_active" className="mb-0 cursor-pointer">
+                                            Active for assignment
+                                        </InputLabel>
+                                    </div>
                                 </div>
                                 <div className="space-y-4 sm:space-y-6">
-                                    <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                                        <span>Description</span>
-                                        <textarea
-                                            value={formState.description}
-                                            onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                            className="min-h-[100px] sm:min-h-[120px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                            placeholder="Optional notes for internal reference."
+                                    {/* Description */}
+                                    <div className="flex flex-col gap-1.5 sm:gap-2">
+                                        <InputLabel htmlFor="description">Description</InputLabel>
+                                        <Controller
+                                            name="description"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <>
+                                                    <textarea
+                                                        id="description"
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            trigger('description');
+                                                        }}
+                                                        onBlur={async () => {
+                                                            field.onBlur();
+                                                            await trigger('description');
+                                                        }}
+                                                        placeholder="Optional notes for internal reference."
+                                                        className={`min-h-[100px] sm:min-h-[120px] mt-1 rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    />
+                                                    {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                </>
+                                            )}
                                         />
-                                    </label>
+                                    </div>
                                 </div>
                             </div>
 
+                            {/* Features */}
                             <fieldset className="rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-3 sm:px-4 sm:py-4">
                                 <legend className="px-2 text-[10px] sm:text-xs font-semibold text-slate-400">
                                     Feature access
                                 </legend>
                                 <div className="mt-2 sm:mt-3 grid gap-2 sm:gap-3 grid-cols-1 md:grid-cols-2">
-                                    {featureOptions.map((feature) => {
-                                        const checked = formState.features.includes(feature.value);
-                                        return (
-                                            <label key={feature.value} className="flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-slate-50 px-2.5 py-2 sm:px-3 text-xs sm:text-sm text-slate-600">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={checked}
-                                                    onChange={(e) => toggleFeature(feature.value, e.target.checked)}
-                                                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                />
-                                                {feature.label}
-                                            </label>
-                                        );
-                                    })}
+                                    <Controller
+                                        name="features"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <>
+                                                {featureOptions.map((feature) => {
+                                                    const checked = field.value?.includes(feature.value) || false;
+                                                    return (
+                                                        <label key={feature.value} className="flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-slate-50 px-2.5 py-2 sm:px-3 text-xs sm:text-sm text-slate-600">
+                                                            <Checkbox
+                                                                checked={checked}
+                                                                onChange={(e) => {
+                                                                    const currentFeatures = field.value || [];
+                                                                    if (e.target.checked) {
+                                                                        field.onChange([...currentFeatures, feature.value]);
+                                                                    } else {
+                                                                        field.onChange(currentFeatures.filter(f => f !== feature.value));
+                                                                    }
+                                                                }}
+                                                            />
+                                                            {feature.label}
+                                                        </label>
+                                                    );
+                                                })}
+                                            </>
+                                        )}
+                                    />
                                 </div>
                             </fieldset>
                         </form>

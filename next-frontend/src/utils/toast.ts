@@ -79,20 +79,3 @@ export const toastWarning = (message: string, duration?: number) => {
     showDeduplicatedToast(toast.warning, message, duration);
 };
 
-/**
- * Show a toast (generic)
- */
-export const showToast = (
-    type: "success" | "error" | "info" | "warning",
-    message: string,
-    duration?: number
-) => {
-    const toastFn = {
-        success: toast.success,
-        error: toast.error,
-        info: toast.info,
-        warning: toast.warning,
-    }[type];
-
-    showDeduplicatedToast(toastFn, message, duration);
-};

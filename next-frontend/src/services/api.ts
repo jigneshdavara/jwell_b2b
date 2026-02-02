@@ -172,6 +172,13 @@ apiClient.interceptors.response.use(
             const isRefreshTokenRequest =
                 requestUrl.includes("/auth/refresh-token") ||
                 requestUrl.includes("refresh-token");
+            
+            // Check if this is a login/register/OTP request - don't try to refresh token for these
+            const isAuthRequest =
+                requestUrl.includes("/auth/login") ||
+                requestUrl.includes("/auth/register") ||
+                requestUrl.includes("/auth/otp/verify") ||
+                requestUrl.includes("/auth/otp/request");
 
             // If this is a refresh-token request that failed with ANY error, redirect immediately
             if (isRefreshTokenRequest) {
@@ -203,6 +210,12 @@ apiClient.interceptors.response.use(
                 return Promise.reject(error);
             }
 
+            // Don't try to refresh token for auth requests (login, register, OTP)
+            // These requests should fail with their original error message
+            if (isAuthRequest) {
+                return Promise.reject(error);
+            }
+
             // If this is not a retry, try to refresh token
             if (!originalRequest._retry) {
                 originalRequest._retry = true;
@@ -217,10 +230,26 @@ apiClient.interceptors.response.use(
                         return apiClient(originalRequest);
                     } else {
                         // No token returned from refresh - token was removed due to error
-                        // Redirect to login
-                        throw new Error(
-                            "Token refresh failed - no token returned"
-                        );
+                        // Only show this error if we're not on a public path
+                        if (typeof window !== "undefined") {
+                            const currentPath = window.location.pathname;
+                            const publicPaths = [
+                                "/login",
+                                "/register",
+                                "/forgot-password",
+                                "/reset-password",
+                                "/verify-email",
+                            ];
+                            
+                            // Don't throw error on public paths - let the original error pass through
+                            if (!publicPaths.some((path) => currentPath.startsWith(path))) {
+                                throw new Error(
+                                    "Token refresh failed - no token returned"
+                                );
+                            }
+                        }
+                        // On public paths, reject with original error
+                        return Promise.reject(error);
                     }
                 } catch (refreshError: any) {
                     // Refresh failed - ensure token is removed and redirect to login

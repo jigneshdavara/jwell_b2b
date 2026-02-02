@@ -7,8 +7,16 @@ import apiClient from '@/services/api';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
+import Checkbox from '@/components/ui/Checkbox';
+import Select from '@/components/ui/Select';
 import { toastSuccess, toastError, toastInfo } from '@/utils/toast';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { diamondShapeSchema, DiamondShapeFormData } from '@/lib/validation/admin.schema';
 
 type DiamondType = {
     id: number;
@@ -42,16 +50,27 @@ export default function AdminDiamondShapesIndex() {
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
-    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-    // Toast notifications are handled via RTK
-
-    const [formData, setFormData] = useState({
-        diamond_type_id: '' as string | number,
-        code: '',
-        name: '',
-        description: '',
-        display_order: 0 as string | number,
-        is_active: true,
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        trigger,
+    } = useForm<DiamondShapeFormData>({
+        resolver: zodResolver(diamondShapeSchema),
+        mode: "onSubmit",
+        reValidateMode: "onBlur",
+        shouldFocusError: true,
+        defaultValues: {
+            diamond_type_id: 0,
+            code: '',
+            name: '',
+            description: '',
+            display_order: 0,
+            is_active: true,
+        },
     });
     const [processing, setProcessing] = useState(false);
 
@@ -161,9 +180,8 @@ export default function AdminDiamondShapesIndex() {
     const resetForm = () => {
         setEditingShape(null);
         setModalOpen(false);
-        setFormErrors({});
-        setFormData({
-            diamond_type_id: '',
+        reset({
+            diamond_type_id: 0,
             code: '',
             name: '',
             description: '',
@@ -179,8 +197,7 @@ export default function AdminDiamondShapesIndex() {
 
     const openEditModal = (shape: DiamondShapeRow) => {
         setEditingShape(shape);
-        setFormErrors({});
-        setFormData({
+        reset({
             diamond_type_id: shape.diamond_type_id,
             code: shape.code,
             name: shape.name,
@@ -191,19 +208,17 @@ export default function AdminDiamondShapesIndex() {
         setModalOpen(true);
     };
 
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const onSubmit = async (data: DiamondShapeFormData) => {
         setProcessing(true);
-        setFormErrors({});
         
         try {
             const payload: any = {
-                diamond_type_id: Number(formData.diamond_type_id),
-                code: formData.code,
-                name: formData.name,
-                description: formData.description || null,
-                display_order: formData.display_order === '' ? 0 : Number(formData.display_order),
-                is_active: formData.is_active,
+                diamond_type_id: data.diamond_type_id,
+                code: data.code,
+                name: data.name,
+                description: data.description || null,
+                display_order: data.display_order,
+                is_active: data.is_active,
             };
 
             if (editingShape) {
@@ -216,12 +231,27 @@ export default function AdminDiamondShapesIndex() {
             resetForm();
             await loadShapes();
         } catch (error: any) {
-            console.error('Failed to save diamond shape:', error);
+            // Handle field-level errors
             if (error.response?.data?.errors) {
-                setFormErrors(error.response.data.errors);
-            } else {
-                toastError(error.response?.data?.message || 'Failed to save diamond shape. Please try again.');
+                const fieldErrors = error.response.data.errors;
+                Object.keys(fieldErrors).forEach((key) => {
+                    const errorMessage = Array.isArray(fieldErrors[key]) 
+                        ? fieldErrors[key][0] 
+                        : fieldErrors[key];
+                    setError(key as keyof DiamondShapeFormData, {
+                        type: 'server',
+                        message: errorMessage,
+                    });
+                });
             }
+            
+            // Show error message in toast (prioritize message field)
+            const errorMessage = error.response?.data?.message 
+                ? (Array.isArray(error.response.data.message) 
+                    ? error.response.data.message.join(', ') 
+                    : error.response.data.message)
+                : 'Failed to save diamond shape. Please try again.';
+            toastError(errorMessage);
         } finally {
             setProcessing(false);
         }
@@ -496,86 +526,192 @@ export default function AdminDiamondShapesIndex() {
                     </div>
 
                     <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
-                        <form onSubmit={submit} className="space-y-4 sm:space-y-6" id="shape-form">
+                        <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4 sm:space-y-6" id="shape-form">
                             <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                                 <div className="space-y-4 sm:space-y-6">
                                     <div className="grid gap-3 sm:gap-4">
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Type <span className="text-rose-500">*</span></span>
-                                            <select
-                                                value={formData.diamond_type_id === '' ? '' : String(formData.diamond_type_id)}
-                                                onChange={(event) => setFormData({ ...formData, diamond_type_id: event.target.value === '' ? '' : Number(event.target.value) })}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                required
-                                            >
-                                                <option value="">Select type</option>
-                                                {types.map((type) => (
-                                                    <option key={type.id} value={type.id}>
-                                                        {type.name} {type.code ? `(${type.code})` : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {formErrors.diamond_type_id && <span className="text-xs text-rose-500">{formErrors.diamond_type_id}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Code <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="text"
-                                                value={formData.code}
-                                                onChange={(event) => setFormData({ ...formData, code: event.target.value })}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                placeholder="e.g., RND, PRI"
-                                                required
+                                        {/* Type */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="diamond_type_id">
+                                                Type <span className="text-rose-500">*</span>
+                                            </InputLabel>
+                                            <Controller
+                                                name="diamond_type_id"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <Select
+                                                            id="diamond_type_id"
+                                                            value={field.value && field.value !== 0 ? field.value.toString() : ''}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                field.onChange(value);
+                                                                trigger('diamond_type_id');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('diamond_type_id');
+                                                            }}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        >
+                                                            <option value="">Select type</option>
+                                                            {types.map((type) => (
+                                                                <option key={type.id} value={type.id}>
+                                                                    {type.name} {type.code ? `(${type.code})` : ''}
+                                                                </option>
+                                                            ))}
+                                                        </Select>
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                            {formErrors.code && <span className="text-xs text-rose-500">{formErrors.code}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Name <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="text"
-                                                value={formData.name}
-                                                onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                required
+                                        </div>
+
+                                        {/* Code */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="code">
+                                                Code <span className="text-rose-500">*</span>
+                                            </InputLabel>
+                                            <Controller
+                                                name="code"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="code"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                trigger('code');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('code');
+                                                            }}
+                                                            placeholder="e.g., RND, PRI"
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                            {formErrors.name && <span className="text-xs text-rose-500">{formErrors.name}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Display Order <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="number"
-                                                value={formData.display_order === '' || formData.display_order === undefined || formData.display_order === 0 ? '' : formData.display_order}
-                                                onChange={(event) => setFormData({ ...formData, display_order: event.target.value === '' ? 0 : Number(event.target.value) })}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                min={0}
-                                                required
+                                        </div>
+
+                                        {/* Name */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="name">
+                                                Name <span className="text-rose-500">*</span>
+                                            </InputLabel>
+                                            <Controller
+                                                name="name"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="name"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                trigger('name');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('name');
+                                                            }}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                            {formErrors.display_order && <span className="text-xs text-rose-500">{formErrors.display_order}</span>}
-                                        </label>
+                                        </div>
+
+                                        {/* Display Order */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="display_order">
+                                                Display Order <span className="text-rose-500">*</span>
+                                            </InputLabel>
+                                            <Controller
+                                                name="display_order"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="display_order"
+                                                            type="number"
+                                                            value={field.value?.toString() || '0'}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                field.onChange(value);
+                                                                trigger('display_order');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('display_order');
+                                                            }}
+                                                            onFocus={(e) => {
+                                                                if (e.target.value === '0') {
+                                                                    e.target.select();
+                                                                }
+                                                            }}
+                                                            min={0}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
+                                            />
+                                        </div>
                                     </div>
 
-                                    <label className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.is_active}
-                                            onChange={(event) => setFormData({ ...formData, is_active: event.target.checked })}
-                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                    {/* Is Active */}
+                                    <div className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3">
+                                        <Controller
+                                            name="is_active"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onChange={(e) => field.onChange(e.target.checked)}
+                                                />
+                                            )}
                                         />
-                                        Active for selection
-                                    </label>
+                                        <InputLabel htmlFor="is_active" className="mb-0 cursor-pointer">
+                                            Active for selection
+                                        </InputLabel>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4 sm:space-y-6">
-                                    <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                        <span>Description</span>
-                                        <textarea
-                                            value={formData.description}
-                                            onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-                                            className="min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                            placeholder="Optional notes for team."
+                                    {/* Description */}
+                                    <div className="flex flex-col gap-1.5 sm:gap-2">
+                                        <InputLabel htmlFor="description">Description</InputLabel>
+                                        <Controller
+                                            name="description"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <>
+                                                    <textarea
+                                                        id="description"
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            trigger('description');
+                                                        }}
+                                                        onBlur={async () => {
+                                                            field.onBlur();
+                                                            await trigger('description');
+                                                        }}
+                                                        placeholder="Optional notes for team."
+                                                        className={`min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] mt-1 rounded-lg sm:rounded-xl border ${fieldState.error ? 'border-red-300' : 'border-slate-300'} bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${fieldState.error ? 'focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    />
+                                                    {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                </>
+                                            )}
                                         />
-                                        {formErrors.description && <span className="text-xs text-rose-500">{formErrors.description}</span>}
-                                    </label>
+                                    </div>
                                 </div>
                             </div>
                         </form>

@@ -8,6 +8,13 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 import { toastError } from '@/utils/toast';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { catalogSchema, type CatalogFormData } from '@/lib/validation/admin.schema';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
+import Checkbox from '@/components/ui/Checkbox';
 
 type CatalogRow = {
     id: number;
@@ -41,12 +48,26 @@ export default function AdminCatalogsIndex() {
     const [deleteConfirm, setDeleteConfirm] = useState<CatalogRow | null>(null);
     const [selectedCatalogs, setSelectedCatalogs] = useState<number[]>([]);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
-    const [formState, setFormState] = useState({
-        code: '',
-        name: '',
-        description: '',
-        is_active: true,
-        display_order: 0 as number | '',
+    
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        trigger,
+    } = useForm<CatalogFormData>({
+        resolver: zodResolver(catalogSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onBlur',
+        shouldFocusError: true,
+        defaultValues: {
+            code: '',
+            name: '',
+            description: '',
+            is_active: true,
+            display_order: 0,
+        },
     });
     // Assign Products Modal state
     const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -107,7 +128,7 @@ export default function AdminCatalogsIndex() {
     const resetForm = () => {
         setEditingCatalog(null);
         setModalOpen(false);
-        setFormState({
+        reset({
             code: '',
             name: '',
             description: '',
@@ -123,7 +144,7 @@ export default function AdminCatalogsIndex() {
 
     const openEditModal = (catalog: CatalogRow) => {
         setEditingCatalog(catalog);
-        setFormState({
+        reset({
             code: catalog.code || '',
             name: catalog.name,
             description: catalog.description || '',
@@ -133,16 +154,15 @@ export default function AdminCatalogsIndex() {
         setModalOpen(true);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: CatalogFormData) => {
         setLoading(true);
         try {
             const payload = {
-                code: formState.code,
-                name: formState.name,
-                description: formState.description || null,
-                is_active: formState.is_active,
-                display_order: Number(formState.display_order) || 0,
+                code: data.code,
+                name: data.name,
+                description: data.description || null,
+                is_active: data.is_active,
+                display_order: data.display_order,
             };
 
             if (editingCatalog) {
@@ -153,7 +173,19 @@ export default function AdminCatalogsIndex() {
             resetForm();
             await loadCatalogs();
         } catch (error: any) {
-            toastError(error.response?.data?.message || 'Failed to save catalog. Please try again.');
+            const errorMessage = error?.response?.data?.message || 'Failed to save catalog. Please try again.';
+            toastError(errorMessage);
+            
+            // Set form errors if validation errors exist
+            if (error?.response?.data?.errors) {
+                const errors = error.response.data.errors;
+                Object.keys(errors).forEach((key) => {
+                    setError(key as keyof CatalogFormData, {
+                        type: 'server',
+                        message: errors[key][0],
+                    });
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -662,78 +694,150 @@ export default function AdminCatalogsIndex() {
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
-                            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" id="catalog-form">
+                            <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4 sm:space-y-6" id="catalog-form">
                                 <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                                     <div className="space-y-4 sm:space-y-6">
                                         <div className="grid gap-3 sm:gap-4">
-                                            <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                                                <span>Code <span className="text-rose-500">*</span></span>
-                                                <input
-                                                    type="text"
-                                                    value={formState.code}
-                                                    onChange={(e) => setFormState({ ...formState, code: e.target.value })}
-                                                    className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 sm:py-2"
-                                                    placeholder="e.g., CAT001"
-                                                    required
+                                            <div>
+                                                <InputLabel htmlFor="code">
+                                                    Code <span className="text-rose-500">*</span>
+                                                </InputLabel>
+                                                <Controller
+                                                    name="code"
+                                                    control={control}
+                                                    render={({ field, fieldState }) => (
+                                                        <>
+                                                            <TextInput
+                                                                id="code"
+                                                                type="text"
+                                                                value={field.value || ''}
+                                                                onChange={(e) => {
+                                                                    field.onChange(e);
+                                                                    trigger('code');
+                                                                }}
+                                                                onBlur={async () => {
+                                                                    field.onBlur();
+                                                                    await trigger('code');
+                                                                }}
+                                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                                placeholder="e.g., CAT001"
+                                                            />
+                                                            <InputError message={errors.code?.message} />
+                                                        </>
+                                                    )}
                                                 />
-                                            </label>
-                                            <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                                                <span>Name <span className="text-rose-500">*</span></span>
-                                                <input
-                                                    type="text"
-                                                    value={formState.name}
-                                                    onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                                                    className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 sm:py-2"
-                                                    required
+                                            </div>
+                                            
+                                            <div>
+                                                <InputLabel htmlFor="name">
+                                                    Name <span className="text-rose-500">*</span>
+                                                </InputLabel>
+                                                <Controller
+                                                    name="name"
+                                                    control={control}
+                                                    render={({ field, fieldState }) => (
+                                                        <>
+                                                            <TextInput
+                                                                id="name"
+                                                                type="text"
+                                                                value={field.value || ''}
+                                                                onChange={(e) => {
+                                                                    field.onChange(e);
+                                                                    trigger('name');
+                                                                }}
+                                                                onBlur={async () => {
+                                                                    field.onBlur();
+                                                                    await trigger('name');
+                                                                }}
+                                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                            />
+                                                            <InputError message={errors.name?.message} />
+                                                        </>
+                                                    )}
                                                 />
-                                            </label>
-                                            <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                                                <span>Display order <span className="text-rose-500">*</span></span>
-                                                <input
-                                                    type="number"
-                                                    value={formState.display_order}
-                                                    onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        setFormState({ ...formState, display_order: value === '' ? '' : Number(value) });
-                                                    }}
-                                                    onBlur={(e) => {
-                                                        if (e.target.value === '') {
-                                                            setFormState({ ...formState, display_order: 0 });
-                                                        }
-                                                    }}
-                                                    onFocus={(e) => {
-                                                        if (e.target.value === '0') {
-                                                            e.target.select();
-                                                        }
-                                                    }}
-                                                    className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 sm:py-2"
-                                                    min={0}
-                                                    required
+                                            </div>
+                                            
+                                            <div>
+                                                <InputLabel htmlFor="display_order">
+                                                    Display order <span className="text-rose-500">*</span>
+                                                </InputLabel>
+                                                <Controller
+                                                    name="display_order"
+                                                    control={control}
+                                                    render={({ field, fieldState }) => (
+                                                        <>
+                                                            <TextInput
+                                                                id="display_order"
+                                                                type="number"
+                                                                value={field.value?.toString() || '0'}
+                                                                onChange={(e) => {
+                                                                    const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                    field.onChange(value);
+                                                                    trigger('display_order');
+                                                                }}
+                                                                onBlur={async () => {
+                                                                    field.onBlur();
+                                                                    await trigger('display_order');
+                                                                }}
+                                                                onFocus={(e) => {
+                                                                    if (e.target.value === '0') {
+                                                                        e.target.select();
+                                                                    }
+                                                                }}
+                                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                                min={0}
+                                                            />
+                                                            <InputError message={errors.display_order?.message} />
+                                                        </>
+                                                    )}
                                                 />
-                                            </label>
+                                            </div>
                                         </div>
 
-                                        <label className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
-                                            <input
-                                                type="checkbox"
-                                                checked={formState.is_active}
-                                                onChange={(e) => setFormState({ ...formState, is_active: e.target.checked })}
-                                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        <div>
+                                            <Controller
+                                                name="is_active"
+                                                control={control}
+                                                render={({ field }) => (
+                                                    <label className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
+                                                        <Checkbox
+                                                            id="is_active"
+                                                            checked={field.value}
+                                                            onChange={(e) => field.onChange(e.target.checked)}
+                                                        />
+                                                        Active for selection
+                                                    </label>
+                                                )}
                                             />
-                                            Active for selection
-                                        </label>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-4 sm:space-y-6">
-                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Description</span>
-                                            <textarea
-                                                value={formState.description}
-                                                onChange={(e) => setFormState({ ...formState, description: e.target.value })}
-                                                className="min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 sm:py-2"
-                                                placeholder="Optional description for this catalog."
-                                            />
-                                        </label>
+                                        <Controller
+                                            name="description"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
+                                                    <span>Description</span>
+                                                    <textarea
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            trigger('description');
+                                                        }}
+                                                        onBlur={async () => {
+                                                            field.onBlur();
+                                                            await trigger('description');
+                                                        }}
+                                                        className={`min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] rounded-lg sm:rounded-xl border ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/20'} bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 sm:py-2`}
+                                                        placeholder="Optional description for this catalog."
+                                                    />
+                                                    {fieldState.error && (
+                                                        <InputError message={errors.description?.message} />
+                                                    )}
+                                                </label>
+                                            )}
+                                        />
                                     </div>
                                 </div>
                             </form>

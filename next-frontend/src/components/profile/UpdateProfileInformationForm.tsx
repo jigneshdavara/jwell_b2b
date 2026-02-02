@@ -5,7 +5,10 @@ import InputLabel from '@/components/ui/InputLabel';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import TextInput from '@/components/ui/TextInput';
 import { Transition } from '@headlessui/react';
-import { useState, FormEventHandler, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { profileUpdateSchema, type ProfileUpdateFormData } from '@/lib/validation/auth.schema';
 import { frontendService } from '@/services/frontendService';
 import { authService } from '@/services/authService';
 import { useRouter } from 'next/navigation';
@@ -29,43 +32,49 @@ export default function UpdateProfileInformationForm({
     className?: string;
 }) {
     const router = useRouter();
-    const [data, setData] = useState({
-        name: user?.name ?? '',
-        email: user?.email ?? '',
-        phone: user?.phone ?? '',
-        preferred_language: user?.preferred_language ?? 'en',
-    });
-
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const [processing, setProcessing] = useState(false);
     const [recentlySuccessful, setRecentlySuccessful] = useState(false);
-    // Toast notifications are handled via RTK
     const [verificationStatus, setVerificationStatus] = useState<string>('');
     const [sendingVerification, setSendingVerification] = useState(false);
+
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        reset,
+        setError,
+    } = useForm<ProfileUpdateFormData>({
+        resolver: zodResolver(profileUpdateSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onBlur',
+        shouldFocusError: true,
+        defaultValues: {
+            name: user?.name ?? '',
+            email: user?.email ?? '',
+            phone: user?.phone ?? null,
+            preferred_language: (user?.preferred_language ?? 'en') as 'en' | 'hi' | 'gu',
+        },
+    });
 
     // Update form data when user changes
     useEffect(() => {
         if (user) {
-            setData({
+            reset({
                 name: user.name ?? '',
                 email: user.email ?? '',
-                phone: user.phone ?? '',
-                preferred_language: user.preferred_language ?? 'en',
+                phone: user.phone ?? null,
+                preferred_language: (user.preferred_language ?? 'en') as 'en' | 'hi' | 'gu',
             });
         }
-    }, [user]);
+    }, [user, reset]);
 
-    const submit: FormEventHandler = async (e) => {
-        e.preventDefault();
-        setProcessing(true);
-        setErrors({});
-
+    const submit = async (formData: ProfileUpdateFormData) => {
         try {
             await frontendService.updateProfile({
-                name: data.name,
-                email: data.email,
-                phone: data.phone || undefined,
-                preferred_language: data.preferred_language || undefined,
+                name: formData.name,
+                email: formData.email,
+                phone: formData.phone || undefined,
+                preferred_language: formData.preferred_language || undefined,
             });
 
             setRecentlySuccessful(true);
@@ -74,20 +83,22 @@ export default function UpdateProfileInformationForm({
             // Refresh the page to get updated user data
             router.refresh();
         } catch (error: any) {
-            if (error.response?.data?.message) {
+            if (error.response?.data?.errors) {
+                // Set errors using React Hook Form's setError
+                for (const key in error.response.data.errors) {
+                    setError(key as keyof ProfileUpdateFormData, {
+                        type: 'server',
+                        message: error.response.data.errors[key][0],
+                    });
+                }
+            } else if (error.response?.data?.message) {
                 const errorMessage = error.response.data.message;
                 if (typeof errorMessage === 'string') {
                     toastError(errorMessage);
-                } else if (typeof errorMessage === 'object') {
-                    setErrors(errorMessage);
                 }
-            } else if (error.response?.data) {
-                setErrors(error.response.data);
             } else {
                 toastError('Failed to update profile. Please try again.');
             }
-        } finally {
-            setProcessing(false);
         }
     };
 
@@ -122,37 +133,53 @@ export default function UpdateProfileInformationForm({
             </header>
 
 
-            <form onSubmit={submit} className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
+            <form onSubmit={handleSubmit(submit)} className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
                 <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
                     <div>
                         <InputLabel htmlFor="name" value="Full name" />
 
-                        <TextInput
-                            id="name"
-                            className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
-                            value={data.name}
-                            onChange={(e) => setData({ ...data, name: e.target.value })}
-                            required
-                            isFocused
-                            autoComplete="name"
+                        <Controller
+                            name="name"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <>
+                                    <TextInput
+                                        {...field}
+                                        id="name"
+                                        className={`mt-1.5 block w-full rounded-xl border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base ${
+                                            fieldState.error || errors.name ? 'border-red-300 focus:border-red-400 focus:ring-red-300' : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                        }`}
+                                        autoComplete="name"
+                                    />
+                                    <InputError className="mt-1.5 sm:mt-2" message={errors.name?.message} />
+                                </>
+                            )}
                         />
-
-                        <InputError className="mt-1.5 sm:mt-2" message={errors.name} />
                     </div>
 
                     <div>
                         <InputLabel htmlFor="phone" value="Contact number" />
 
-                        <TextInput
-                            id="phone"
-                            className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
-                            value={data.phone}
-                            onChange={(e) => setData({ ...data, phone: e.target.value })}
-                            autoComplete="tel"
-                            placeholder="e.g. +91 98765 43210"
+                        <Controller
+                            name="phone"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <>
+                                    <TextInput
+                                        {...field}
+                                        id="phone"
+                                        value={field.value ?? ''}
+                                        onChange={(e) => field.onChange(e.target.value || null)}
+                                        className={`mt-1.5 block w-full rounded-xl border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base ${
+                                            fieldState.error || errors.phone ? 'border-red-300 focus:border-red-400 focus:ring-red-300' : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                        }`}
+                                        autoComplete="tel"
+                                        placeholder="e.g. +91 98765 43210"
+                                    />
+                                    <InputError className="mt-1.5 sm:mt-2" message={errors.phone?.message} />
+                                </>
+                            )}
                         />
-
-                        <InputError className="mt-1.5 sm:mt-2" message={errors.phone} />
                     </div>
                 </div>
 
@@ -160,36 +187,51 @@ export default function UpdateProfileInformationForm({
                     <div>
                         <InputLabel htmlFor="email" value="Work email" />
 
-                        <TextInput
-                            id="email"
-                            type="email"
-                            className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
-                            value={data.email}
-                            onChange={(e) => setData({ ...data, email: e.target.value })}
-                            required
-                            autoComplete="username"
+                        <Controller
+                            name="email"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <>
+                                    <TextInput
+                                        {...field}
+                                        id="email"
+                                        type="email"
+                                        className={`mt-1.5 block w-full rounded-xl border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base ${
+                                            fieldState.error || errors.email ? 'border-red-300 focus:border-red-400 focus:ring-red-300' : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                        }`}
+                                        autoComplete="username"
+                                    />
+                                    <InputError className="mt-1.5 sm:mt-2" message={errors.email?.message} />
+                                </>
+                            )}
                         />
-
-                        <InputError className="mt-1.5 sm:mt-2" message={errors.email} />
                     </div>
 
                     <div>
                         <InputLabel htmlFor="preferred_language" value="Preferred language" />
 
-                        <select
-                            id="preferred_language"
-                            value={data.preferred_language}
-                            onChange={(event) => setData({ ...data, preferred_language: event.target.value })}
-                            className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
-                        >
-                            {languageOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-
-                        <InputError className="mt-1.5 sm:mt-2" message={errors.preferred_language} />
+                        <Controller
+                            name="preferred_language"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <>
+                                    <select
+                                        {...field}
+                                        id="preferred_language"
+                                        className={`mt-1.5 block w-full rounded-xl border bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base ${
+                                            fieldState.error || errors.preferred_language ? 'border-red-300 focus:border-red-400 focus:ring-red-300' : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                        }`}
+                                    >
+                                        {languageOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <InputError className="mt-1.5 sm:mt-2" message={errors.preferred_language?.message} />
+                                </>
+                            )}
+                        />
                     </div>
                 </div>
 
@@ -214,7 +256,7 @@ export default function UpdateProfileInformationForm({
                 )}
 
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
-                    <PrimaryButton disabled={processing} className="w-full sm:w-auto">Save updates</PrimaryButton>
+                    <PrimaryButton disabled={isSubmitting} className="w-full sm:w-auto">Save updates</PrimaryButton>
 
                     <Transition
                         show={recentlySuccessful}

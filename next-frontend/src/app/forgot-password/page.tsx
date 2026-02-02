@@ -1,12 +1,19 @@
 "use client";
 
 import InputError from "@/components/ui/InputError";
-import PrimaryButton from "@/components/ui/PrimaryButton";
+import InputLabel from "@/components/ui/InputLabel";
 import TextInput from "@/components/ui/TextInput";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import GuestLayout from "@/components/shared/GuestLayout";
 import Link from "next/link";
-import { FormEvent, ReactNode, useState } from "react";
+import { ReactNode, useState } from "react";
 import { authService } from "@/services/authService";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    forgotPasswordSchema,
+    ForgotPasswordFormData,
+} from "@/lib/validation/auth.schema";
 
 const ArrowRightIcon = () => (
   <svg
@@ -100,35 +107,46 @@ const recoveryHighlights: Array<{
 ];
 
 export default function ForgotPasswordPage() {
-  const [data, setData] = useState({
-    email: "",
-  });
-  const [processing, setProcessing] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setProcessing(true);
-    setErrors({});
-    setStatus(null);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: "onSubmit",
+    reValidateMode: "onBlur",
+    shouldFocusError: true,
+    defaultValues: {
+      email: "",
+    },
+  });
 
+  const onSubmit = async (data: ForgotPasswordFormData) => {
     try {
+      setLoading(true);
+      setStatus(null);
       const response = await authService.forgotPassword(data.email);
       setStatus(
         response.data?.message ||
           "If that email address exists, we will send a password reset link."
       );
     } catch (error: any) {
-      if (error.response?.data?.message) {
-        setStatus(error.response.data.message);
-      } else {
-        setErrors({
-          email: error.response?.data?.message || "Failed to send reset link.",
-        });
-      }
+      // Prioritize message field from API response
+      const errorMessage = error?.response?.data?.message || 
+                           error?.response?.data?.error?.[0]?.message || 
+                           (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                           error?.message || 
+                           "Failed to send reset link. Please try again.";
+      setError("root", {
+        type: "server",
+        message: errorMessage,
+      });
     } finally {
-      setProcessing(false);
+      setLoading(false);
     }
   };
 
@@ -196,33 +214,42 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="text-[10px] font-semibold uppercase tracking-[0.3em] text-ink/60 sm:text-xs"
-                >
-                  Work email
-                </label>
-                <TextInput
-                  id="email"
-                  type="email"
-                  name="email"
-                  value={data.email}
-                  className="mt-2 block w-full"
-                  isFocused={true}
-                  onChange={(e) => setData({ ...data, email: e.target.value })}
-                />
-                <InputError message={errors.email} className="mt-2" />
+            {errors.root && (
+              <div className="mb-4 rounded-2xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 sm:px-4 sm:py-3 sm:text-sm">
+                {errors.root.message}
               </div>
+            )}
 
-              <PrimaryButton className="w-full gap-2" disabled={processing}>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
+              <Controller
+                name="email"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <div>
+                    <InputLabel
+                      htmlFor="email"
+                      value="Work email"
+                    />
+                    <TextInput
+                      id="email"
+                      type="email"
+                      {...field}
+                      value={field.value || ""}
+                      className={`mt-2 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
+                      autoFocus
+                    />
+                    <InputError message={fieldState.error?.message} className="mt-2" />
+                  </div>
+                )}
+              />
+
+              <PrimaryButton className="w-full gap-2" disabled={loading}>
                 <span>
-                  {processing
+                  {loading
                     ? "Sending link..."
                     : "Email password reset link"}
                 </span>
-                {!processing && <ArrowRightIcon />}
+                {!loading && <ArrowRightIcon />}
               </PrimaryButton>
               <p className="text-center text-[10px] text-ink/60 sm:text-xs">
                 Remembered your password?{" "}
@@ -240,4 +267,3 @@ export default function ForgotPasswordPage() {
     </GuestLayout>
   );
 }
-

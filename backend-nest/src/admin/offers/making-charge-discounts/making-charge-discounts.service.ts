@@ -164,29 +164,67 @@ export class MakingChargeDiscountsService {
             user_groups: { select: { id: true, name: true } },
         } satisfies Prisma.making_charge_discountsInclude;
 
+        // Build update data, handling null values explicitly
+        const updateData: Prisma.making_charge_discountsUncheckedUpdateInput =
+            {};
+
+        if (dto.name !== undefined) {
+            updateData.name = dto.name;
+        }
+        if (dto.description !== undefined) {
+            updateData.description = dto.description;
+        }
+        if (dto.discount_type !== undefined) {
+            updateData.discount_type = dto.discount_type;
+        }
+        if (dto.value !== undefined) {
+            updateData.value = dto.value;
+        }
+
+        // Handle brand_id: null means "all brands", undefined means "don't update"
+        if (dto.brand_id !== undefined) {
+            updateData.brand_id =
+                dto.brand_id !== null ? BigInt(dto.brand_id) : null;
+        }
+
+        // Handle category_id: null means "all categories", undefined means "don't update"
+        if (dto.category_id !== undefined) {
+            updateData.category_id =
+                dto.category_id !== null ? BigInt(dto.category_id) : null;
+        }
+
+        // Handle user_group_id: null means "all groups", undefined means "don't update"
+        if (dto.user_group_id !== undefined) {
+            updateData.user_group_id =
+                dto.user_group_id !== null ? BigInt(dto.user_group_id) : null;
+        }
+
+        if (dto.min_cart_total !== undefined) {
+            updateData.min_cart_total = dto.min_cart_total;
+        }
+        if (dto.is_auto !== undefined) {
+            updateData.is_auto = dto.is_auto;
+        }
+        if (dto.is_active !== undefined) {
+            updateData.is_active = dto.is_active;
+        }
+        if (dto.starts_at !== undefined) {
+            updateData.starts_at = dto.starts_at
+                ? new Date(dto.starts_at)
+                : null;
+        }
+        if (dto.ends_at !== undefined) {
+            updateData.ends_at = dto.ends_at ? new Date(dto.ends_at) : null;
+        }
+        if (dto.user_types !== undefined) {
+            updateData.user_types = dto.user_types
+                ? (dto.user_types as Prisma.InputJsonValue)
+                : Prisma.JsonNull;
+        }
+
         await this.prisma.making_charge_discounts.update({
             where: { id: BigInt(id) },
-            data: {
-                name: dto.name,
-                description: dto.description,
-                discount_type: dto.discount_type,
-                value: dto.value,
-                brand_id: dto.brand_id ? BigInt(dto.brand_id) : undefined,
-                category_id: dto.category_id
-                    ? BigInt(dto.category_id)
-                    : undefined,
-                user_group_id: dto.user_group_id
-                    ? BigInt(dto.user_group_id)
-                    : undefined,
-                min_cart_total: dto.min_cart_total,
-                is_auto: dto.is_auto,
-                is_active: dto.is_active,
-                starts_at: dto.starts_at ? new Date(dto.starts_at) : undefined,
-                ends_at: dto.ends_at ? new Date(dto.ends_at) : undefined,
-                user_types: dto.user_types
-                    ? (dto.user_types as Prisma.InputJsonValue)
-                    : undefined,
-            },
+            data: updateData,
             include: includeRelations,
         });
         return {

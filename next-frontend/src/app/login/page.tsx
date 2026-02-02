@@ -3,72 +3,93 @@
 import Checkbox from '@/components/ui/Checkbox';
 import InputError from '@/components/ui/InputError';
 import InputLabel from '@/components/ui/InputLabel';
-import PrimaryButton from '@/components/ui/PrimaryButton';
 import TextInput from '@/components/ui/TextInput';
+import PrimaryButton from '@/components/ui/PrimaryButton';
 import GuestLayout from '@/components/shared/GuestLayout';
 import Link from 'next/link';
-import { FormEventHandler, ReactNode, useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { route } from '@/utils/route';
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store';
 import { login, verifyOtp } from '@/store/slices/authSlice';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { loginSchema, otpLoginSchema, LoginFormData, OtpLoginFormData } from '@/lib/validation/auth.schema';
+import { authService } from '@/services/authService';
 
 type LoginMode = 'password' | 'otp';
-
-import { authService } from '@/services/authService';
 
 export default function Login() {
     const router = useRouter();
     const dispatch = useDispatch<AppDispatch>();
     const [status, setStatus] = useState<string | undefined>(undefined);
-    const canResetPassword = true;
+    const [loading, setLoading] = useState(false);
+    const [otpRequestLoading, setOtpRequestLoading] = useState(false);
+    const [otpVerifyLoading, setOtpVerifyLoading] = useState(false);
 
     const [mode, setMode] = useState<LoginMode>('password');
     const [otpRequested, setOtpRequested] = useState(false);
-    
-    const [passwordData, setPasswordData] = useState({
-        email: '',
-        password: '',
-        remember: false,
+
+    // Password login form with real-time validation
+    const passwordForm = useForm<LoginFormData>({
+        resolver: zodResolver(loginSchema),
+        mode: 'onSubmit', // Validate all fields on submit
+        reValidateMode: 'onBlur', // Re-validate on blur after first validation
+        shouldFocusError: true, // Automatically focus first error field on submit
+        defaultValues: {
+            email: '',
+            password: '',
+            remember: false,
+        },
     });
 
-    const [otpVerifyData, setOtpVerifyData] = useState({
-        email: '',
-        code: '',
+    // OTP request form (email only)
+    const otpRequestForm = useForm<{ email: string }>({
+        resolver: zodResolver(otpLoginSchema.pick({ email: true })),
+        mode: 'onSubmit', // Validate all fields on submit
+        reValidateMode: 'onBlur', // Re-validate on blur after first validation
+        shouldFocusError: true, // Automatically focus first error field on submit
+        defaultValues: {
+            email: '',
+        },
     });
 
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const [processing, setProcessing] = useState(false);
+    // OTP verify form
+    const otpVerifyForm = useForm<OtpLoginFormData>({
+        resolver: zodResolver(otpLoginSchema),
+        mode: 'onSubmit', // Validate all fields on submit
+        reValidateMode: 'onBlur', // Re-validate on blur after first validation
+        shouldFocusError: true, // Automatically focus first error field on submit
+        defaultValues: {
+            email: '',
+            code: '',
+        },
+    });
 
+    // Sync email between forms
     const syncEmail = (value: string) => {
-        setPasswordData(prev => ({ ...prev, email: value }));
-        setOtpVerifyData(prev => ({ ...prev, email: value }));
+        passwordForm.setValue('email', value);
+        otpRequestForm.setValue('email', value);
+        otpVerifyForm.setValue('email', value);
     };
 
-    const sharedEmail = passwordData.email;
+    const sharedEmail = passwordForm.watch('email') || otpRequestForm.watch('email') || otpVerifyForm.watch('email');
 
-    const submitPassword: FormEventHandler = async (event) => {
-        event.preventDefault();
-        setProcessing(true);
-        setErrors({});
-
+    const submitPassword = async (data: LoginFormData) => {
         try {
-            // Use Redux login thunk to store token in Redux and localStorage
-            const result = await dispatch(login(passwordData)).unwrap();
+            setLoading(true);
+            const result = await dispatch(login(data)).unwrap();
             
-            // Get user data from Redux result to determine redirect
             const user = result.user;
             const userType = (user?.type || '').toLowerCase();
             
-            // Determine redirect URL
             let redirectUrl: string;
             if (['admin', 'super-admin'].includes(userType)) {
                 redirectUrl = route('admin.dashboard');
             } else if (userType === 'production') {
                 redirectUrl = route('production.dashboard');
             } else {
-                // For customer users, check KYC status
                 const kycStatus = user?.kyc_status || user?.kycStatus;
                 if (kycStatus === 'approved') {
                     redirectUrl = route('dashboard');
@@ -77,63 +98,104 @@ export default function Login() {
                 }
             }
             
-            // Use router.replace() to navigate without page reload and prevent back button to login
             router.replace(redirectUrl);
         } catch (error: any) {
-            // Handle Redux thunk errors
+            // When using .unwrap(), Redux Toolkit passes the rejectWithValue payload directly
+            // If authSlice uses rejectWithValue(errorMessage), error is the string message
+            // If it's the full error object, extract from response.data.message
+            
+            let errorMessage: string;
+            
+            // Check if error is already a string (from rejectWithValue)
             if (typeof error === 'string') {
-                setErrors({ email: error });
-            } else if (error?.message) {
-                setErrors({ email: error.message });
-            } else if (error.response?.status === 401) {
-                setErrors({ email: 'Invalid credentials.' });
-            } else if (error.response?.data?.message) {
-                setErrors({ email: error.response.data.message });
-            } else {
-                setErrors({ email: 'An error occurred. Please try again.' });
+                errorMessage = error;
+            } 
+            // Check if it's the full error object with response.data
+            else if (error?.response?.data?.errors && typeof error.response.data.errors === 'object') {
+                // Handle field-level validation errors (400)
+                Object.keys(error.response.data.errors).forEach((field) => {
+                    const fieldErrors = error.response.data.errors[field];
+                    const message = Array.isArray(fieldErrors) ? fieldErrors[0] : fieldErrors;
+                    if (message) {
+                        passwordForm.setError(field as keyof LoginFormData, {
+                            type: 'server',
+                            message: typeof message === 'string' ? message : String(message),
+                        });
+                    }
+                });
+                return; // Exit early, field errors handled
+            } 
+            // Extract from error object
+            else {
+                errorMessage = error?.response?.data?.message || 
+                               (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                               error?.response?.data?.error?.[0]?.message || 
+                               error?.message || 
+                               'The user name or password is incorrect';
             }
+            
+            passwordForm.setError('root', {
+                type: 'server',
+                message: errorMessage,
+            });
         } finally {
-            setProcessing(false);
+            setLoading(false);
         }
     };
 
-    const submitOtpRequest: FormEventHandler = async (event) => {
-        event.preventDefault();
-        setProcessing(true);
-        setErrors({});
-        
+    const submitOtpRequest = async (data: { email: string }) => {
         try {
-            await authService.requestOtp(sharedEmail);
+            setOtpRequestLoading(true);
+            setStatus(undefined);
+            await authService.requestOtp(data.email);
             setOtpRequested(true);
             setStatus('A one-time code has been emailed.');
+            otpVerifyForm.setValue('email', data.email);
         } catch (error: any) {
-            setErrors({ email: error.response?.data?.message || 'Failed to send code.' });
+            // authService returns full error object (not Redux)
+            // Prioritize message field from API response
+            let errorMessage: string;
+            
+            if (error?.response?.data?.errors?.email) {
+                // Handle field-level validation errors (400)
+                const emailErrors = error.response.data.errors.email;
+                const message = Array.isArray(emailErrors) ? emailErrors[0] : emailErrors;
+                otpRequestForm.setError('email', {
+                    type: 'server',
+                    message: typeof message === 'string' ? message : String(message),
+                });
+                return; // Exit early, field error handled
+            } else {
+                // Extract error message - prioritize message field
+                errorMessage = error?.response?.data?.message || 
+                               (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                               error?.response?.data?.error?.[0]?.message || 
+                               error?.message || 
+                               'Failed to send code. Please try again.';
+                otpRequestForm.setError('email', {
+                    type: 'server',
+                    message: errorMessage,
+                });
+            }
         } finally {
-            setProcessing(false);
+            setOtpRequestLoading(false);
         }
     };
 
-    const submitOtpVerify: FormEventHandler = async (event) => {
-        event.preventDefault();
-        setProcessing(true);
-        setErrors({});
-        
+    const submitOtpVerify = async (data: OtpLoginFormData) => {
         try {
-            // Use Redux verifyOtp thunk to store token in Redux and localStorage
-            const result = await dispatch(verifyOtp({ email: sharedEmail, code: otpVerifyData.code })).unwrap();
+            setOtpVerifyLoading(true);
+            const result = await dispatch(verifyOtp({ email: data.email, code: data.code })).unwrap();
             
-            // Get user data from Redux result to determine redirect
             const user = result.user;
             const userType = (user?.type || '').toLowerCase();
             
-            // Determine redirect URL
             let redirectUrl: string;
             if (['admin', 'super-admin'].includes(userType)) {
                 redirectUrl = route('admin.dashboard');
             } else if (userType === 'production') {
                 redirectUrl = route('production.dashboard');
             } else {
-                // For customer users, check KYC status
                 const kycStatus = user?.kyc_status || user?.kycStatus;
                 if (kycStatus === 'approved') {
                     redirectUrl = route('dashboard');
@@ -142,21 +204,60 @@ export default function Login() {
                 }
             }
             
-            // Use router.replace() to navigate without page reload and prevent back button to login
             router.replace(redirectUrl);
         } catch (error: any) {
-            // Handle Redux thunk errors
+            // When using .unwrap(), Redux Toolkit passes the rejectWithValue payload directly
+            // If authSlice uses rejectWithValue(errorMessage), error is the string message
+            // If it's the full error object, extract from response.data.message
+            
+            let errorMessage: string;
+            
+            // Check if error is already a string (from rejectWithValue)
             if (typeof error === 'string') {
-                setErrors({ code: error });
-            } else if (error?.message) {
-                setErrors({ code: error.message });
-            } else if (error.response?.data?.message) {
-                setErrors({ code: error.response.data.message });
-            } else {
-                setErrors({ code: 'Invalid code.' });
+                errorMessage = error;
+            } 
+            // Check if it's the full error object with response.data
+            else if (error?.response?.data?.errors) {
+                // Handle field-level validation errors (400)
+                if (error.response.data.errors.code) {
+                    const codeErrors = error.response.data.errors.code;
+                    const message = Array.isArray(codeErrors) ? codeErrors[0] : codeErrors;
+                    otpVerifyForm.setError('code', {
+                        type: 'server',
+                        message: typeof message === 'string' ? message : String(message),
+                    });
+                    return; // Exit early, field error handled
+                } else if (error.response.data.errors.email) {
+                    const emailErrors = error.response.data.errors.email;
+                    const message = Array.isArray(emailErrors) ? emailErrors[0] : emailErrors;
+                    otpVerifyForm.setError('email', {
+                        type: 'server',
+                        message: typeof message === 'string' ? message : String(message),
+                    });
+                    return; // Exit early, field error handled
+                }
+                // Fall through to extract general error
+                errorMessage = error?.response?.data?.message || 
+                               (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                               error?.response?.data?.error?.[0]?.message || 
+                               error?.message || 
+                               'Invalid code.';
+            } 
+            // Extract from error object
+            else {
+                errorMessage = error?.response?.data?.message || 
+                               (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                               error?.response?.data?.error?.[0]?.message || 
+                               error?.message || 
+                               'Invalid code.';
             }
+            
+            otpVerifyForm.setError('code', {
+                type: 'server',
+                message: errorMessage,
+            });
         } finally {
-            setProcessing(false);
+            setOtpVerifyLoading(false);
         }
     };
 
@@ -306,45 +407,62 @@ export default function Login() {
                         </div>
 
                         {mode === 'password' ? (
-                            <form onSubmit={submitPassword} className="space-y-4 sm:space-y-5">
-                                <div>
-                                    <InputLabel htmlFor="email" value="Email" />
-                                    <TextInput
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        value={sharedEmail}
-                                        className="mt-1 block w-full"
-                                        autoComplete="username"
-                                        isFocused={true}
-                                        onChange={(event) => syncEmail(event.target.value)}
-                                    />
-                                    <InputError message={errors.email} className="mt-2" />
-                                </div>
+                            <form onSubmit={passwordForm.handleSubmit(submitPassword)} className="space-y-4 sm:space-y-5">
+                                <Controller
+                                    name="email"
+                                    control={passwordForm.control}
+                                    render={({ field, fieldState }) => (
+                                        <div>
+                                            <InputLabel htmlFor="email" value="Email" />
+                                            <TextInput
+                                                id="email"
+                                                type="email"
+                                                {...field}
+                                                onChange={(e) => {
+                                                    field.onChange(e);
+                                                    syncEmail(e.target.value);
+                                                }}
+                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                autoComplete="username"
+                                                autoFocus
+                                            />
+                                            <InputError message={fieldState.error?.message} className="mt-2" />
+                                        </div>
+                                    )}
+                                />
 
-                                <div>
-                                    <InputLabel htmlFor="password" value="Password" />
-                                    <TextInput
-                                        id="password"
-                                        type="password"
-                                        name="password"
-                                        value={passwordData.password}
-                                        className="mt-1 block w-full"
-                                        autoComplete="current-password"
-                                        onChange={(event) => setPasswordData(prev => ({ ...prev, password: event.target.value }))}
-                                    />
-                                    <InputError message={errors.password} className="mt-2" />
-                                </div>
+                                <Controller
+                                    name="password"
+                                    control={passwordForm.control}
+                                    render={({ field, fieldState }) => (
+                                        <div>
+                                            <InputLabel htmlFor="password" value="Password" />
+                                            <TextInput
+                                                id="password"
+                                                type="password"
+                                                {...field}
+                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                autoComplete="current-password"
+                                            />
+                                            <InputError message={fieldState.error?.message} className="mt-2" />
+                                        </div>
+                                    )}
+                                />
 
                                 <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between sm:text-sm">
-                                    <label className="flex items-center gap-2 text-ink/70">
-                                        <Checkbox
-                                            name="remember"
-                                            checked={passwordData.remember}
-                                            onChange={(event) => setPasswordData(prev => ({ ...prev, remember: event.target.checked }))}
-                                        />
-                                        <span>Remember me</span>
-                                    </label>
+                                    <Controller
+                                        name="remember"
+                                        control={passwordForm.control}
+                                        render={({ field }) => (
+                                            <label className="flex items-center gap-2 text-ink/70">
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onChange={field.onChange}
+                                                />
+                                                <span>Remember me</span>
+                                            </label>
+                                        )}
+                                    />
                                     <Link
                                         href={route('password.request')}
                                         className="font-semibold text-elvee-blue underline decoration-feather-gold decoration-2 underline-offset-4 hover:text-feather-gold"
@@ -353,52 +471,89 @@ export default function Login() {
                                     </Link>
                                 </div>
 
-                                <PrimaryButton className="w-full gap-1.5 py-2 text-xs sm:gap-2 sm:py-2.5 sm:text-sm" disabled={processing}>
-                                    <span>Log in</span>
+                                {passwordForm.formState.errors.root && (
+                                    <div className="rounded-md bg-red-50 p-3">
+                                        <p className="text-sm text-red-800">{passwordForm.formState.errors.root.message}</p>
+                                    </div>
+                                )}
+
+                                <PrimaryButton 
+                                    className="w-full gap-1.5 py-2 text-xs sm:gap-2 sm:py-2.5 sm:text-sm" 
+                                    disabled={loading}
+                                >
+                                    <span>{loading ? 'Logging in...' : 'Log in'}</span>
                                     <ArrowRightIcon />
                                 </PrimaryButton>
                             </form>
                         ) : (
                             <div className="space-y-4 sm:space-y-6">
-                                <form onSubmit={submitOtpRequest} className="space-y-3 sm:space-y-4">
-                                    <div>
-                                        <InputLabel htmlFor="otp_email" value="Email" />
-                                        <TextInput
-                                            id="otp_email"
-                                            type="email"
-                                            name="email"
-                                            value={sharedEmail}
-                                            className="mt-1 block w-full"
-                                            autoComplete="username"
-                                            isFocused={true}
-                                            onChange={(event) => syncEmail(event.target.value)}
-                                        />
-                                        <InputError message={errors.email} className="mt-2" />
-                                    </div>
-                                    <PrimaryButton className="w-full gap-1.5 py-2 text-xs sm:gap-2 sm:py-2.5 sm:text-sm" disabled={processing}>
+                                <form onSubmit={otpRequestForm.handleSubmit(submitOtpRequest)} className="space-y-3 sm:space-y-4">
+                                    {otpRequestForm.formState.errors.root && (
+                                        <div className="mb-4 rounded-2xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 sm:px-4 sm:py-3 sm:text-sm">
+                                            {otpRequestForm.formState.errors.root.message}
+                                        </div>
+                                    )}
+                                    <Controller
+                                        name="email"
+                                        control={otpRequestForm.control}
+                                        render={({ field, fieldState }) => (
+                                            <div>
+                                                <InputLabel htmlFor="otp_email" value="Email" />
+                                                <TextInput
+                                                    id="otp_email"
+                                                    type="email"
+                                                    {...field}
+                                                    onChange={(e) => {
+                                                        field.onChange(e);
+                                                        syncEmail(e.target.value);
+                                                    }}
+                                                    className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    autoComplete="username"
+                                                    autoFocus
+                                                />
+                                                <InputError message={fieldState.error?.message} className="mt-2" />
+                                            </div>
+                                        )}
+                                    />
+                                    <PrimaryButton 
+                                        className="w-full gap-1.5 py-2 text-xs sm:gap-2 sm:py-2.5 sm:text-sm" 
+                                        disabled={otpRequestLoading}
+                                    >
                                         <span>{otpRequested ? 'Resend code' : 'Send login code'}</span>
                                         <ArrowRightIcon />
                                     </PrimaryButton>
                                 </form>
 
-                                <form onSubmit={submitOtpVerify} className="space-y-3 sm:space-y-4">
-                                    <div>
-                                        <InputLabel htmlFor="otp_code" value="One-time code" />
-                                        <TextInput
-                                            id="otp_code"
-                                            type="text"
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            name="code"
-                                            value={otpVerifyData.code}
-                                            className="mt-1 block w-full tracking-[0.5em]"
-                                            placeholder="------"
-                                            onChange={(event) => setOtpVerifyData(prev => ({ ...prev, code: event.target.value }))}
-                                        />
-                                        <InputError message={errors.code} className="mt-2" />
-                                    </div>
-                                    <PrimaryButton className="w-full gap-1.5 py-2 text-xs sm:gap-2 sm:py-2.5 sm:text-sm" disabled={processing || !otpRequested}>
-                                        <span>Log in with code</span>
+                                <form onSubmit={otpVerifyForm.handleSubmit(submitOtpVerify)} className="space-y-3 sm:space-y-4">
+                                    <Controller
+                                        name="code"
+                                        control={otpVerifyForm.control}
+                                        render={({ field, fieldState }) => (
+                                            <div>
+                                                <InputLabel htmlFor="otp_code" value="One-time code" />
+                                                <TextInput
+                                                    id="otp_code"
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]*"
+                                                    {...field}
+                                                    onChange={(e) => {
+                                                        // Auto-format: only numbers, max 6 digits
+                                                        const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                                        field.onChange(value);
+                                                    }}
+                                                    className={`mt-1 tracking-[0.5em] ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    placeholder="------"
+                                                />
+                                                <InputError message={fieldState.error?.message} className="mt-2" />
+                                            </div>
+                                        )}
+                                    />
+                                    <PrimaryButton 
+                                        className="w-full gap-1.5 py-2 text-xs sm:gap-2 sm:py-2.5 sm:text-sm" 
+                                        disabled={otpVerifyLoading || !otpRequested}
+                                    >
+                                        <span>{otpVerifyLoading ? 'Verifying...' : 'Log in with code'}</span>
                                         <ArrowRightIcon />
                                     </PrimaryButton>
                                 </form>

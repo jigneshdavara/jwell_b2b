@@ -8,6 +8,13 @@ import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import { toastError } from '@/utils/toast';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { taxGroupSchema, type TaxGroupFormData } from '@/lib/validation/admin.schema';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
+import Checkbox from '@/components/ui/Checkbox';
 
 type TaxGroupRow = {
     id: number;
@@ -33,12 +40,24 @@ export default function AdminTaxGroupsIndex() {
     const [perPage, setPerPage] = useState(20);
     const [deleteConfirm, setDeleteConfirm] = useState<TaxGroupRow | null>(null);
 
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        is_active: true,
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        trigger,
+    } = useForm<TaxGroupFormData>({
+        resolver: zodResolver(taxGroupSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onBlur',
+        shouldFocusError: true,
+        defaultValues: {
+            name: '',
+            description: '',
+            is_active: true,
+        },
     });
-    const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
@@ -100,8 +119,11 @@ export default function AdminTaxGroupsIndex() {
     const resetForm = () => {
         setEditingGroup(null);
         setModalOpen(false);
-        setFormData({ name: '', description: '', is_active: true });
-        setErrors({});
+        reset({
+            name: '',
+            description: '',
+            is_active: true,
+        });
     };
 
     const openCreateModal = () => {
@@ -111,7 +133,7 @@ export default function AdminTaxGroupsIndex() {
 
     const openEditModal = (group: TaxGroupRow) => {
         setEditingGroup(group);
-        setFormData({
+        reset({
             name: group.name,
             description: group.description ?? '',
             is_active: group.is_active,
@@ -119,15 +141,13 @@ export default function AdminTaxGroupsIndex() {
         setModalOpen(true);
     };
 
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const onSubmit = async (data: TaxGroupFormData) => {
         setProcessing(true);
-        setErrors({});
         try {
             const payload = {
-                name: formData.name,
-                description: formData.description || null,
-                is_active: formData.is_active,
+                name: data.name,
+                description: data.description || null,
+                is_active: data.is_active,
             };
 
             if (editingGroup) {
@@ -139,10 +159,18 @@ export default function AdminTaxGroupsIndex() {
             await loadTaxGroups(meta.current_page, perPage);
         } catch (error: any) {
             console.error('Failed to save tax group:', error);
-            if (error.response?.data?.errors) {
-                setErrors(error.response.data.errors);
-            } else {
-                setErrors({ general: error.response?.data?.message || 'Failed to save tax group. Please try again.' });
+            const errorMessage = error?.response?.data?.message || 'Failed to save tax group. Please try again.';
+            toastError(errorMessage);
+            
+            // Set form errors if validation errors exist
+            if (error?.response?.data?.errors) {
+                const serverErrors = error.response.data.errors;
+                Object.keys(serverErrors).forEach((key) => {
+                    setError(key as keyof TaxGroupFormData, {
+                        type: 'server',
+                        message: serverErrors[key][0],
+                    });
+                });
             }
         } finally {
             setProcessing(false);
@@ -352,47 +380,82 @@ export default function AdminTaxGroupsIndex() {
                         </div>
                     </div>
                     <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
-                        <form id="tax-group-form" onSubmit={submit} className="space-y-3 sm:space-y-4 lg:space-y-6">
+                        <form id="tax-group-form" onSubmit={handleFormSubmit(onSubmit)} className="space-y-3 sm:space-y-4 lg:space-y-6">
                             <div className="grid gap-3 sm:gap-4 lg:gap-6 lg:grid-cols-2">
                                 <div className="space-y-3 sm:space-y-4">
                                     <div>
-                                        <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">
+                                        <InputLabel htmlFor="name">
                                             Name <span className="text-rose-500">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
-                                            required
+                                        </InputLabel>
+                                        <Controller
+                                            name="name"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <>
+                                                    <TextInput
+                                                        id="name"
+                                                        type="text"
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            trigger('name');
+                                                        }}
+                                                        onBlur={async () => {
+                                                            field.onBlur();
+                                                            await trigger('name');
+                                                        }}
+                                                        className={`mt-1.5 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    />
+                                                    <InputError message={errors.name?.message} />
+                                                </>
+                                            )}
                                         />
-                                        {errors.name && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.name}</p>}
                                     </div>
 
                                     <div>
-                                        <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Description</label>
-                                        <textarea
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            rows={3}
-                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                        <InputLabel htmlFor="description">Description</InputLabel>
+                                        <Controller
+                                            name="description"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <>
+                                                    <textarea
+                                                        id="description"
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            trigger('description');
+                                                        }}
+                                                        onBlur={async () => {
+                                                            field.onBlur();
+                                                            await trigger('description');
+                                                        }}
+                                                        rows={3}
+                                                        className={`mt-1.5 w-full rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900'}`}
+                                                    />
+                                                    <InputError message={errors.description?.message} />
+                                                </>
+                                            )}
                                         />
-                                        {errors.description && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.description}</p>}
                                     </div>
                                 </div>
 
                                 <div className="space-y-3 sm:space-y-4">
                                     <div>
-                                        <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Status</label>
-                                        <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs sm:p-4 sm:text-sm text-slate-700">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.is_active}
-                                                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                                className="h-3.5 w-3.5 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold sm:h-4 sm:w-4"
-                                            />
-                                            <span>Active</span>
-                                        </label>
+                                        <InputLabel className="mb-1.5">Status</InputLabel>
+                                        <Controller
+                                            name="is_active"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs sm:p-4 sm:text-sm text-slate-700">
+                                                    <Checkbox
+                                                        checked={field.value}
+                                                        onChange={(e) => field.onChange(e.target.checked)}
+                                                    />
+                                                    <span>Active</span>
+                                                </label>
+                                            )}
+                                        />
                                     </div>
                                 </div>
                             </div>

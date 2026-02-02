@@ -6,8 +6,15 @@ import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
+import Select from '@/components/ui/Select';
 import { toastSuccess, toastError, toastInfo } from '@/utils/toast';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { diamondShapeSizeSchema, DiamondShapeSizeFormData } from '@/lib/validation/admin.schema';
 
 type DiamondType = {
     id: number;
@@ -55,19 +62,35 @@ export default function AdminDiamondShapeSizesIndex() {
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeSizeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
-    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-    // Toast notifications are handled via RTK
-
-    const [formData, setFormData] = useState({
-        diamond_type_id: '' as string | number,
-        diamond_shape_id: '' as string | number,
-        size: '',
-        secondary_size: '',
-        description: '',
-        display_order: 0 as string | number,
-        ctw: '' as string | number,
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        trigger,
+        watch,
+        setValue,
+    } = useForm<DiamondShapeSizeFormData>({
+        resolver: zodResolver(diamondShapeSizeSchema),
+        mode: "onSubmit",
+        reValidateMode: "onBlur",
+        shouldFocusError: true,
+        defaultValues: {
+            diamond_type_id: 0,
+            diamond_shape_id: 0,
+            size: '',
+            secondary_size: '',
+            description: '',
+            display_order: 0,
+            ctw: 0,
+        },
     });
     const [processing, setProcessing] = useState(false);
+    
+    // Watch diamond_type_id to load shapes when it changes
+    const watchedTypeId = watch('diamond_type_id');
 
     useEffect(() => {
         loadTypes();
@@ -78,7 +101,7 @@ export default function AdminDiamondShapeSizesIndex() {
         loadSizes();
     }, [currentPage, perPage, selectedTypeId, selectedShapeId]);
 
-    // Filter shapes when type changes
+    // Filter shapes when type changes (for table filter)
     useEffect(() => {
         if (selectedTypeId) {
             loadShapesByType(selectedTypeId);
@@ -89,6 +112,20 @@ export default function AdminDiamondShapeSizesIndex() {
             }
         }
     }, [selectedTypeId, shapes]);
+
+    // Load shapes when diamond_type_id changes in form (for form dropdown)
+    useEffect(() => {
+        if (watchedTypeId && watchedTypeId !== 0) {
+            // Reset diamond_shape_id when type changes
+            setValue('diamond_shape_id', 0);
+            loadShapesByType(Number(watchedTypeId));
+        } else {
+            // If no type selected, show all active shapes
+            if (shapes.length > 0) {
+                setFilteredShapes(shapes.filter(s => s.is_active !== false));
+            }
+        }
+    }, [watchedTypeId, shapes, setValue]);
 
     useEffect(() => {
         const existingIds = new Set(sizes.data.map((size) => size.id));
@@ -249,15 +286,14 @@ export default function AdminDiamondShapeSizesIndex() {
     const resetForm = () => {
         setEditingSize(null);
         setModalOpen(false);
-        setFormErrors({});
-        setFormData({
-            diamond_type_id: '',
-            diamond_shape_id: '',
+        reset({
+            diamond_type_id: 0,
+            diamond_shape_id: 0,
             size: '',
             secondary_size: '',
             description: '',
             display_order: 0,
-            ctw: '',
+            ctw: 0,
         });
         // Reset filtered shapes to show all when form is reset
         setFilteredShapes(shapes);
@@ -270,35 +306,37 @@ export default function AdminDiamondShapeSizesIndex() {
 
     const openEditModal = async (size: DiamondShapeSizeRow) => {
         setEditingSize(size);
-        setFormErrors({});
-        setFormData({
+        // Load shapes for the selected type when editing
+        await loadShapesByType(size.diamond_type_id);
+        reset({
             diamond_type_id: size.diamond_type_id,
-            diamond_shape_id: size.diamond_shape_id,
+            diamond_shape_id: 0, // Set to 0 initially, will be set after shapes load
             size: size.size,
             secondary_size: size.secondary_size ?? '',
             description: size.description ?? '',
             display_order: size.display_order,
             ctw: size.ctw,
         });
-        // Load shapes for the selected type when editing
-        await loadShapesByType(size.diamond_type_id);
+        // Set the shape_id after reset to ensure it's not overridden by useEffect
+        // Use setTimeout to ensure it runs after the useEffect that watches watchedTypeId
+        setTimeout(() => {
+            setValue('diamond_shape_id', size.diamond_shape_id);
+        }, 0);
         setModalOpen(true);
     };
 
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const onSubmit = async (data: DiamondShapeSizeFormData) => {
         setProcessing(true);
-        setFormErrors({});
         
         try {
             const payload: any = {
-                diamond_type_id: Number(formData.diamond_type_id),
-                diamond_shape_id: Number(formData.diamond_shape_id),
-                size: formData.size,
-                secondary_size: formData.secondary_size || null,
-                description: formData.description || null,
-                display_order: formData.display_order === '' ? 0 : Number(formData.display_order),
-                ctw: formData.ctw === '' ? 0 : Number(formData.ctw),
+                diamond_type_id: data.diamond_type_id,
+                diamond_shape_id: data.diamond_shape_id,
+                size: data.size,
+                secondary_size: data.secondary_size || null,
+                description: data.description || null,
+                display_order: data.display_order,
+                ctw: data.ctw,
             };
 
             if (editingSize) {
@@ -311,12 +349,27 @@ export default function AdminDiamondShapeSizesIndex() {
             resetForm();
             await loadSizes();
         } catch (error: any) {
-            console.error('Failed to save diamond shape size:', error);
+            // Handle field-level errors
             if (error.response?.data?.errors) {
-                setFormErrors(error.response.data.errors);
-            } else {
-                toastError(error.response?.data?.message || 'Failed to save diamond shape size. Please try again.');
+                const fieldErrors = error.response.data.errors;
+                Object.keys(fieldErrors).forEach((key) => {
+                    const errorMessage = Array.isArray(fieldErrors[key]) 
+                        ? fieldErrors[key][0] 
+                        : fieldErrors[key];
+                    setError(key as keyof DiamondShapeSizeFormData, {
+                        type: 'server',
+                        message: errorMessage,
+                    });
+                });
             }
+            
+            // Show error message in toast (prioritize message field)
+            const errorMessage = error.response?.data?.message 
+                ? (Array.isArray(error.response.data.message) 
+                    ? error.response.data.message.join(', ') 
+                    : error.response.data.message)
+                : 'Failed to save diamond shape size. Please try again.';
+            toastError(errorMessage);
         } finally {
             setProcessing(false);
         }
@@ -593,135 +646,262 @@ export default function AdminDiamondShapeSizesIndex() {
                     </div>
 
                     <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
-                        <form onSubmit={submit} className="space-y-4 sm:space-y-6" id="size-form">
+                        <form onSubmit={handleFormSubmit(onSubmit)} className="space-y-4 sm:space-y-6" id="size-form">
                             <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                                 <div className="space-y-4 sm:space-y-6">
                                     <div className="grid gap-3 sm:gap-4">
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Type <span className="text-rose-500">*</span></span>
-                                            <select
-                                                value={formData.diamond_type_id === '' ? '' : String(formData.diamond_type_id)}
-                                                onChange={async (event) => {
-                                                    const typeId = event.target.value === '' ? '' : Number(event.target.value);
-                                                    setFormData({ 
-                                                        ...formData, 
-                                                        diamond_type_id: typeId,
-                                                        diamond_shape_id: '', // Reset shape when type changes
-                                                    });
-                                                    // Load shapes for selected type
-                                                    await loadShapesByType(typeId);
-                                                }}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                required
-                                            >
-                                                <option value="">Select type</option>
-                                                {types.map((type) => (
-                                                    <option key={type.id} value={type.id}>
-                                                        {type.name} {type.code ? `(${type.code})` : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {formErrors.diamond_type_id && <span className="text-xs text-rose-500">{formErrors.diamond_type_id}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Diamond Shape <span className="text-rose-500">*</span></span>
-                                            <select
-                                                value={formData.diamond_shape_id === '' ? '' : String(formData.diamond_shape_id)}
-                                                onChange={(event) => setFormData({ ...formData, diamond_shape_id: event.target.value === '' ? '' : Number(event.target.value) })}
-                                                disabled={loadingShapes || !formData.diamond_type_id || formData.diamond_type_id === ''}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                required
-                                            >
-                                                <option value="">
-                                                    {loadingShapes 
-                                                        ? 'Loading shapes...' 
-                                                        : !formData.diamond_type_id || formData.diamond_type_id === ''
-                                                        ? 'Select type first'
-                                                        : 'Select a shape'}
-                                                </option>
-                                                {filteredShapes.map((shape) => (
-                                                    <option key={shape.id} value={shape.id}>
-                                                        {shape.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {formErrors.diamond_shape_id && <span className="text-xs text-rose-500">{formErrors.diamond_shape_id}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Size <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="text"
-                                                value={formData.size}
-                                                onChange={(event) => setFormData({ ...formData, size: event.target.value })}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                placeholder="e.g., 1.00, 2.00x3.00"
-                                                required
+                                        {/* Type */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="diamond_type_id">
+                                                Type <span className="text-rose-500">*</span>
+                                            </InputLabel>
+                                            <Controller
+                                                name="diamond_type_id"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <Select
+                                                            id="diamond_type_id"
+                                                            value={field.value && field.value !== 0 ? field.value.toString() : ''}
+                                                            onChange={async (e) => {
+                                                                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                field.onChange(value);
+                                                                // Reset shape when type changes
+                                                                setValue('diamond_shape_id', 0);
+                                                                // Load shapes for selected type
+                                                                if (value !== 0) {
+                                                                    await loadShapesByType(value);
+                                                                }
+                                                                trigger('diamond_type_id');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('diamond_type_id');
+                                                            }}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        >
+                                                            <option value="">Select type</option>
+                                                            {types.map((type) => (
+                                                                <option key={type.id} value={type.id}>
+                                                                    {type.name} {type.code ? `(${type.code})` : ''}
+                                                                </option>
+                                                            ))}
+                                                        </Select>
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
                                             />
-                                            {formErrors.size && <span className="text-xs text-rose-500">{formErrors.size}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Secondary Size</span>
-                                            <input
-                                                type="text"
-                                                value={formData.secondary_size}
-                                                onChange={(event) => setFormData({ ...formData, secondary_size: event.target.value })}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                placeholder="e.g., (S), (T)"
-                                            />
-                                            {formErrors.secondary_size && <span className="text-xs text-rose-500">{formErrors.secondary_size}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>CTW (Carat Total Weight) <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="number"
-                                                step="0.001"
-                                                value={formData.ctw === '' ? '' : formData.ctw}
-                                                onChange={(event) => setFormData({ ...formData, ctw: event.target.value === '' ? '' : Number(event.target.value) })}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                min={0}
-                                                required
-                                            />
-                                            {formErrors.ctw && <span className="text-xs text-rose-500">{formErrors.ctw}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                            <span>Display Order <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="number"
-                                                value={formData.display_order === '' || formData.display_order === undefined || formData.display_order === 0 ? '' : formData.display_order}
-                                                onChange={(event) => {
-                                                    const value = event.target.value;
-                                                    setFormData({ ...formData, display_order: value === '' ? 0 : Number(value) });
+                                        </div>
+
+                                        {/* Diamond Shape */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="diamond_shape_id">
+                                                Diamond Shape <span className="text-rose-500">*</span>
+                                            </InputLabel>
+                                            <Controller
+                                                name="diamond_shape_id"
+                                                control={control}
+                                                render={({ field, fieldState }) => {
+                                                    const typeId = watch('diamond_type_id');
+                                                    const isDisabled = loadingShapes || !typeId || typeId === 0;
+                                                    
+                                                    return (
+                                                        <>
+                                                            <Select
+                                                                id="diamond_shape_id"
+                                                                value={field.value && field.value !== 0 ? field.value.toString() : ''}
+                                                                onChange={(e) => {
+                                                                    const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                    field.onChange(value);
+                                                                    trigger('diamond_shape_id');
+                                                                }}
+                                                                onBlur={async () => {
+                                                                    field.onBlur();
+                                                                    await trigger('diamond_shape_id');
+                                                                }}
+                                                                disabled={isDisabled}
+                                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                            >
+                                                                <option value="">
+                                                                    {loadingShapes 
+                                                                        ? 'Loading shapes...' 
+                                                                        : !typeId || typeId === 0
+                                                                        ? 'Select type first'
+                                                                        : 'Select a shape'}
+                                                                </option>
+                                                                {filteredShapes.map((shape) => (
+                                                                    <option key={shape.id} value={shape.id}>
+                                                                        {shape.name}
+                                                                    </option>
+                                                                ))}
+                                                            </Select>
+                                                            {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                        </>
+                                                    );
                                                 }}
-                                                onBlur={(e) => {
-                                                    if (e.target.value === '') {
-                                                        setFormData({ ...formData, display_order: 0 });
-                                                    }
-                                                }}
-                                                onFocus={(e) => {
-                                                    if (e.target.value === '0') {
-                                                        e.target.select();
-                                                    }
-                                                }}
-                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                                min={0}
-                                                required
                                             />
-                                            {formErrors.display_order && <span className="text-xs text-rose-500">{formErrors.display_order}</span>}
-                                        </label>
+                                        </div>
+
+                                        {/* Size */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="size">
+                                                Size <span className="text-rose-500">*</span>
+                                            </InputLabel>
+                                            <Controller
+                                                name="size"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="size"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                trigger('size');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('size');
+                                                            }}
+                                                            placeholder="e.g., 1.00, 2.00x3.00"
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
+                                            />
+                                        </div>
+
+                                        {/* Secondary Size */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="secondary_size">Secondary Size</InputLabel>
+                                            <Controller
+                                                name="secondary_size"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="secondary_size"
+                                                            type="text"
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                trigger('secondary_size');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('secondary_size');
+                                                            }}
+                                                            placeholder="e.g., (S), (T)"
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
+                                            />
+                                        </div>
+
+                                        {/* CTW */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="ctw">
+                                                CTW (Carat Total Weight) <span className="text-rose-500">*</span>
+                                            </InputLabel>
+                                            <Controller
+                                                name="ctw"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="ctw"
+                                                            type="number"
+                                                            step="0.001"
+                                                            value={field.value?.toString() || '0'}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                field.onChange(value);
+                                                                trigger('ctw');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('ctw');
+                                                            }}
+                                                            min={0}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
+                                            />
+                                        </div>
+
+                                        {/* Display Order */}
+                                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                                            <InputLabel htmlFor="display_order">
+                                                Display Order <span className="text-rose-500">*</span>
+                                            </InputLabel>
+                                            <Controller
+                                                name="display_order"
+                                                control={control}
+                                                render={({ field, fieldState }) => (
+                                                    <>
+                                                        <TextInput
+                                                            id="display_order"
+                                                            type="number"
+                                                            value={field.value?.toString() || '0'}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                                                                field.onChange(value);
+                                                                trigger('display_order');
+                                                            }}
+                                                            onBlur={async () => {
+                                                                field.onBlur();
+                                                                await trigger('display_order');
+                                                            }}
+                                                            onFocus={(e) => {
+                                                                if (e.target.value === '0') {
+                                                                    e.target.select();
+                                                                }
+                                                            }}
+                                                            min={0}
+                                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                        />
+                                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                    </>
+                                                )}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="space-y-4 sm:space-y-6">
-                                    <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
-                                        <span>Description</span>
-                                        <textarea
-                                            value={formData.description}
-                                            onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-                                            className="min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                            placeholder="Optional notes for team."
+                                    {/* Description */}
+                                    <div className="flex flex-col gap-1.5 sm:gap-2">
+                                        <InputLabel htmlFor="description">Description</InputLabel>
+                                        <Controller
+                                            name="description"
+                                            control={control}
+                                            render={({ field, fieldState }) => (
+                                                <>
+                                                    <textarea
+                                                        id="description"
+                                                        value={field.value || ''}
+                                                        onChange={(e) => {
+                                                            field.onChange(e);
+                                                            trigger('description');
+                                                        }}
+                                                        onBlur={async () => {
+                                                            field.onBlur();
+                                                            await trigger('description');
+                                                        }}
+                                                        placeholder="Optional notes for team."
+                                                        className={`min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] mt-1 rounded-lg sm:rounded-xl border ${fieldState.error ? 'border-red-300' : 'border-slate-300'} bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${fieldState.error ? 'focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                    />
+                                                    {fieldState.error && <InputError message={fieldState.error.message} />}
+                                                </>
+                                            )}
                                         />
-                                        {formErrors.description && <span className="text-xs text-rose-500">{formErrors.description}</span>}
-                                    </label>
+                                    </div>
                                 </div>
                             </div>
                         </form>

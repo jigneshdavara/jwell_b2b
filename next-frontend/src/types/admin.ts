@@ -100,4 +100,3 @@ export type DiamondShape = {
     name: string;
     code: string | null;
 };
-
