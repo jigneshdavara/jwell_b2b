@@ -1,32 +1,127 @@
 on:
   push:
     branches:
-    - main
+    - nestjs_backend
+  workflow_dispatch:
 
-name: 🚀 Deploy website on push
+
+name: 🚀 Build and Deploy website
+
 jobs:
-  web-deploy:
-    name: 🎉 Deploy
+  build:
+    name: 🏗 Build
     runs-on: ubuntu-latest
     steps:
     - name: 🚚 Get latest code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: 📦 Setup Node.js
+    - name: 🔧 Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
-        cache: 'npm'
+        node-version: '22'
 
-    - name: 📥 Install dependencies
-      run: npm ci
+    - name: 📦 Install & build frontend
+      working-directory: frontend
+      env:
+        STATIC_EXPORT: '1'
+      run: |
+        npm install
+        npm run build
 
-    - name: 🔨 Build frontend assets
-      run: npm run build
+    - name: 📦 Install & build backend
+      working-directory: backend
+      run: |
+        npm install
+        npx prisma generate
+        npm run build
 
-    - name: 📂 Sync files to first FTP server
-      uses: SamKirkland/FTP-Deploy-Action@4.3.3
+    - name: 📦 Archive frontend artifacts
+      uses: actions/upload-artifact@v4
       with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
+        name: frontend-site
+        path: frontend/out/
+
+    - name: 📦 Archive backend artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-app
+        path: |
+          backend/dist
+          backend/package.json
+          backend/package-lock.json
+          backend/prisma
+          backend/prisma.config.ts
+
+  deploy-hostinger-password:
+    name: 🚀 Deploy to Hostinger (Password Auth)
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/nestjs_backend'
+
+    steps:
+    - name: 📥 Download frontend artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-site
+        path: frontend-out
+
+    - name: 📥 Download backend artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-app
+        path: backend-out
+
+    - name: 📤 Upload frontend to temp on server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        source: "frontend-out/**"
+        target: "/tmp/jwell_b2b_frontend"
+
+    - name: 📤 Upload backend to temp on server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        source: "backend-out/**"
+        target: "/tmp/jwell_b2b_backend"
+
+    - name: 🚀 Deploy frontend & backend
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        script: |
+          # Deploy frontend to Apache
+          if [ -d "/var/www/html/jwell_b2b" ]; then
+            sudo mkdir -p /var/www/html/jwell_b2b_backups
+            sudo cp -r /var/www/html/jwell_b2b /var/www/html/jwell_b2b_backups/jwell_b2b_backup_$(date +%Y%m%d_%H%M%S)
+            sudo rm -rf /var/www/html/jwell_b2b
+            echo "✅ Frontend backup created"
+          fi
+          sudo mkdir -p /var/www/html/jwell_b2b
+          sudo mv /tmp/jwell_b2b_frontend/* /var/www/html/jwell_b2b/
+          sudo chown -R www-data:www-data /var/www/html/jwell_b2b
+          sudo chmod -R 755 /var/www/html/jwell_b2b
+
+          # Deploy backend (NestJS)
+          BACKEND_DIR="/var/www/jwell_b2b_api"
+          sudo mkdir -p $BACKEND_DIR
+          sudo cp -r /tmp/jwell_b2b_backend/* $BACKEND_DIR/
+          cd $BACKEND_DIR
+          sudo npm install --omit=dev
+          sudo npx prisma generate
+          sudo npx prisma migrate deploy 2>/dev/null || true
+          sudo chown -R www-data:www-data $BACKEND_DIR
+          # Restart backend (PM2 or systemd - adjust if you use a different process manager)
+          if command -v pm2 &> /dev/null; then
+            pm2 restart jwell_b2b_api 2>/dev/null || pm2 start dist/main.js --name jwell_b2b_api
+          fi
+
+          sudo a2enmod rewrite headers expires deflate proxy proxy_http
+          sudo systemctl reload apache2
+          echo "✅ Deployment completed (frontend + backend)"
