@@ -1,32 +1,76 @@
 on:
   push:
     branches:
-    - main
+    - nestjs_backend
+  workflow_dispatch:
 
-name: 🚀 Deploy website on push
+
+name: 🚀 Build and Deploy website
+
 jobs:
-  web-deploy:
-    name: 🎉 Deploy
+  build:
+    name: 🏗 Build
     runs-on: ubuntu-latest
     steps:
     - name: 🚚 Get latest code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: 📦 Setup Node.js
+    - name: 🔧 Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
-        cache: 'npm'
+        node-version: '18'
 
-    - name: 📥 Install dependencies
-      run: npm ci
+    - name: 📦 Install dependencies
+      run: npm install
 
-    - name: 🔨 Build frontend assets
+    - name: 🏗 Build and Export
       run: npm run build
 
-    - name: 📂 Sync files to first FTP server
-      uses: SamKirkland/FTP-Deploy-Action@4.3.3
+    - name: 📦 Archive production artifacts
+      uses: actions/upload-artifact@v4
       with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
+        name: built-site
+        path: ./out/
+
+  deploy-hostinger-password:
+    name: 🚀 Deploy to Hostinger (Password Auth)
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/nestjs_backend'
+
+    steps:
+    - name: 📥 Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: built-site
+        path: out
+
+    - name: 📤 Upload files to temp on server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        source: "out/**"
+        target: "/tmp/jwell_b2b_temp"
+
+    - name: 🚀 Deploy to Apache
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        script: |
+          if [ -d "/var/www/html/jwell_b2b" ]; then
+            sudo mkdir -p /var/www/html/jwell_b2b_backups
+            sudo cp -r /var/www/html/jwell_b2b /var/www/html/jwell_b2b_backups/jwell_b2b_backup_$(date +%Y%m%d_%H%M%S)
+            sudo rm -rf /var/www/html/jwell_b2b
+            echo "✅ Backup created"
+          fi
+          sudo mkdir -p /var/www/html/jwell_b2b
+          sudo mv /tmp/jwell_b2b_temp/* /var/www/html/jwell_b2b/
+          sudo chown -R www-data:www-data /var/www/html/jwell_b2b
+          sudo chmod -R 755 /var/www/html/jwell_b2b
+          sudo a2enmod rewrite headers expires deflate
+          sudo systemctl reload apache2
+          echo "✅ Deployment completed"
