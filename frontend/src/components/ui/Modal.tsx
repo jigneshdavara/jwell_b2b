@@ -69,7 +69,6 @@ export default function Modal({
                     <DialogPanel
                         className={`w-full transform overflow-hidden rounded-xl bg-white shadow-xl transition-all mx-auto mb-6 max-h-[95vh] flex flex-col sm:rounded-lg ${maxWidthClass}`}
                     >
-                        {/* @ts-expect-error - Headless UI DialogPanel typing issue with ReactNode */}
                         {children}
                     </DialogPanel>
                 </TransitionChild>

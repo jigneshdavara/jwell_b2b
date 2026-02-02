@@ -75,7 +75,7 @@ export default function AdminOrderStatusesIndex() {
             })));
         } catch (error: any) {
             console.error('Failed to load order statuses:', error);
-            setErrors({ general: error.response?.data?.message || 'Failed to load order statuses' });
+            toastError(error.response?.data?.message || 'Failed to load order statuses');
         } finally {
             setLoading(false);
         }
@@ -260,11 +260,6 @@ export default function AdminOrderStatusesIndex() {
             <Head title="Order statuses" />
 
             <div className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8">
-                {errors.general && (
-                    <div className="rounded-xl sm:rounded-2xl bg-rose-50 border border-rose-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-rose-700">
-                        {errors.general}
-                    </div>
-                )}
                 <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Order statuses</h1>
                     <p className="mt-2 text-xs sm:text-sm text-slate-500">
