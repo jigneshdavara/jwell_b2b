@@ -159,10 +159,10 @@ export default function ForgotPasswordPage() {
           </div>
           <div className="space-y-2 sm:space-y-3">
             <h1 className="text-xl font-semibold text-elvee-blue sm:text-2xl lg:text-3xl">
-              Let's get you back in
+              Let&apos;s get you back in
             </h1>
             <p className="text-xs text-ink/80 sm:text-sm">
-              Enter the email tied to your Elvee workspace. We'll send a secure
+              Enter the email tied to your Elvee workspace. We&apos;ll send a secure
               link so you can set a fresh password.
             </p>
           </div>
@@ -203,7 +203,7 @@ export default function ForgotPasswordPage() {
                 Receive a recovery link
               </h2>
               <p className="text-xs text-ink/70 sm:text-sm">
-                We'll email you a secure reset link. It expires in 30 minutes
+                We&apos;ll email you a secure reset link. It expires in 30 minutes
                 for your safety.
               </p>
             </header>

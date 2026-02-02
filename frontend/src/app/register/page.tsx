@@ -578,7 +578,7 @@ export default function RegisterPage() {
             Partner onboarding
           </p>
           <h1 className="text-xl font-semibold text-elvee-blue sm:text-2xl lg:text-3xl">
-            Let's introduce your jewellery house
+            Let&apos;s introduce your jewellery house
           </h1>
           <p className="text-xs text-ink/80 sm:text-sm">
             Share business credentials and addresses to unlock curated

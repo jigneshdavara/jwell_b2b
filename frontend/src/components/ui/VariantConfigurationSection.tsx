@@ -97,7 +97,7 @@ export default function VariantConfigurationSection({
                     <div>
                         <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Sizes</h3>
                         <p className="text-xs text-slate-500">
-                            This category "{selectedCategory?.name || product?.category?.name}" has {categorySizes.length} sizes available. 
+                            This category &quot;{selectedCategory?.name || product?.category?.name}&quot; has {categorySizes.length} sizes available. 
                             Select sizes to include in your product variants.
                         </p>
                     </div>
@@ -496,7 +496,7 @@ export default function VariantConfigurationSection({
                             })}
                         </div>
                     ) : (
-                        <p className="text-xs text-slate-400">No diamonds added. Click "Add Diamond" to add one.</p>
+                        <p className="text-xs text-slate-400">No diamonds added. Click &quot;Add Diamond&quot; to add one.</p>
                     )}
                 </div>
 

@@ -277,7 +277,7 @@ export default function AdminGeneralSettingsIndex() {
             <div className="space-y-6 px-1 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8">
                 <div className="rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">General Settings</h1>
-                    <p className="mt-1.5 text-xs sm:text-sm text-slate-500">Manage your application's general settings and branding.</p>
+                    <p className="mt-1.5 text-xs sm:text-sm text-slate-500">Manage your application&apos;s general settings and branding.</p>
                 </div>
 
                 <form onSubmit={handleFormSubmit(submit)} className="space-y-4 sm:space-y-6">

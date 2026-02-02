@@ -132,7 +132,7 @@ export default function QuotationsPage() {
                         <div>
                             <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl lg:text-3xl">Quotation requests</h1>
                             <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">
-                                Track jewellery purchase and jobwork quotations. We'll notify you as soon as our merchandising desk replies.
+                                Track jewellery purchase and jobwork quotations. We&apos;ll notify you as soon as our merchandising desk replies.
                             </p>
                         </div>
                         <Link
