@@ -20,21 +20,37 @@ jobs:
       with:
         node-version: '22'
 
-    - name: 📦 Install dependencies
-      working-directory: frontend
-      run: npm install
-
-    - name: 🏗 Build and Export
+    - name: 📦 Install & build frontend
       working-directory: frontend
       env:
         STATIC_EXPORT: '1'
-      run: npm run build
+      run: |
+        npm install
+        npm run build
 
-    - name: 📦 Archive production artifacts
+    - name: 📦 Install & build backend
+      working-directory: backend
+      run: |
+        npm install
+        npx prisma generate
+        npm run build
+
+    - name: 📦 Archive frontend artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: built-site
+        name: frontend-site
         path: frontend/out/
+
+    - name: 📦 Archive backend artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-app
+        path: |
+          backend/dist
+          backend/package.json
+          backend/package-lock.json
+          backend/prisma
+          backend/prisma.config.ts
 
   deploy-hostinger-password:
     name: 🚀 Deploy to Hostinger (Password Auth)
@@ -43,38 +59,69 @@ jobs:
     if: github.ref == 'refs/heads/nestjs_backend'
 
     steps:
-    - name: 📥 Download artifact
+    - name: 📥 Download frontend artifact
       uses: actions/download-artifact@v4
       with:
-        name: built-site
-        path: out
+        name: frontend-site
+        path: frontend-out
 
-    - name: 📤 Upload files to temp on server
+    - name: 📥 Download backend artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-app
+        path: backend-out
+
+    - name: 📤 Upload frontend to temp on server
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASSWORD }}
-        source: "out/**"
-        target: "/tmp/jwell_b2b_temp"
+        source: "frontend-out/**"
+        target: "/tmp/jwell_b2b_frontend"
 
-    - name: 🚀 Deploy to Apache
+    - name: 📤 Upload backend to temp on server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        source: "backend-out/**"
+        target: "/tmp/jwell_b2b_backend"
+
+    - name: 🚀 Deploy frontend & backend
       uses: appleboy/ssh-action@v0.1.7
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASSWORD }}
         script: |
+          # Deploy frontend to Apache
           if [ -d "/var/www/html/jwell_b2b" ]; then
             sudo mkdir -p /var/www/html/jwell_b2b_backups
             sudo cp -r /var/www/html/jwell_b2b /var/www/html/jwell_b2b_backups/jwell_b2b_backup_$(date +%Y%m%d_%H%M%S)
             sudo rm -rf /var/www/html/jwell_b2b
-            echo "✅ Backup created"
+            echo "✅ Frontend backup created"
           fi
           sudo mkdir -p /var/www/html/jwell_b2b
-          sudo mv /tmp/jwell_b2b_temp/* /var/www/html/jwell_b2b/
+          sudo mv /tmp/jwell_b2b_frontend/* /var/www/html/jwell_b2b/
           sudo chown -R www-data:www-data /var/www/html/jwell_b2b
           sudo chmod -R 755 /var/www/html/jwell_b2b
-          sudo a2enmod rewrite headers expires deflate
+
+          # Deploy backend (NestJS)
+          BACKEND_DIR="/var/www/jwell_b2b_api"
+          sudo mkdir -p $BACKEND_DIR
+          sudo cp -r /tmp/jwell_b2b_backend/* $BACKEND_DIR/
+          cd $BACKEND_DIR
+          sudo npm install --omit=dev
+          sudo npx prisma generate
+          sudo npx prisma migrate deploy 2>/dev/null || true
+          sudo chown -R www-data:www-data $BACKEND_DIR
+          # Restart backend (PM2 or systemd - adjust if you use a different process manager)
+          if command -v pm2 &> /dev/null; then
+            pm2 restart jwell_b2b_api 2>/dev/null || pm2 start dist/main.js --name jwell_b2b_api
+          fi
+
+          sudo a2enmod rewrite headers expires deflate proxy proxy_http
           sudo systemctl reload apache2
-          echo "✅ Deployment completed"
+          echo "✅ Deployment completed (frontend + backend)"
