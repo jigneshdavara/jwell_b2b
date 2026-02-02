@@ -219,7 +219,7 @@ export default function InvoicesPage() {
                                             </td>
                                             <td className="px-2 py-2.5 text-right sm:px-4 sm:py-4">
                                                 <p className="text-xs font-semibold text-slate-900 sm:text-sm">
-                                                    {formatCurrency(parseFloat(invoice.total_amount), invoice.currency)}
+                                                    {formatCurrency(parseFloat(invoice.total_amount))}
                                                 </p>
                                             </td>
                                             <td className="px-2 py-2.5 sm:px-4 sm:py-4">

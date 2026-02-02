@@ -460,7 +460,7 @@ export default function AdminAdminsIndex() {
                                                         await trigger('password');
                                                         // In edit mode, trigger confirmation validation when password is entered
                                                         // In create mode, only trigger if confirmation also has value
-                                                        if (!isCreateMode || (watch('password_confirmation') && watch('password_confirmation').length > 0)) {
+                                                        if (!isCreateMode || ((watch('password_confirmation') ?? '').length > 0)) {
                                                             await trigger('password_confirmation');
                                                         }
                                                     }
