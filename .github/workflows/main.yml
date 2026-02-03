@@ -89,8 +89,8 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          # Paths are frontend-out/frontend/... (artifact keeps "frontend/" prefix). Include .next explicitly (hidden dirs skipped by **).
-          source: "frontend-out/frontend/**,frontend-out/frontend/.next"
+          # Artifact extracts to frontend-out/frontend/... (paths preserved). Copy whole dir.
+          source: "frontend-out"
           target: "/tmp/jwell_b2b/jwell_b2b_frontend"
 
       - name: 📤 Upload backend to temp on server
@@ -99,7 +99,8 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          source: "backend-out/**"
+          # Artifact extracts to backend-out/backend/... (paths preserved). Copy whole dir.
+          source: "backend-out"
           target: "/tmp/jwell_b2b/jwell_b2b_backend"
 
       - name: 🚀 Deploy frontend & backend
@@ -112,10 +113,12 @@ jobs:
             # Deploy frontend (Next.js - npm start)
             FRONTEND_DIR="/var/www/html/jwell_b2b/jwell_b2b_frontend"
             sudo mkdir -p $FRONTEND_DIR
-            # Artifact extracts as frontend-out/frontend/..., so SCP may create .../frontend/ on server
+            # Artifact extracts as frontend-out/frontend/... (paths preserved). SCP copies "frontend-out" dir.
             TMP_FRONTEND="/tmp/jwell_b2b/jwell_b2b_frontend"
-            if [ -d "$TMP_FRONTEND/frontend" ]; then
-              sudo cp -r "$TMP_FRONTEND/frontend/." "$FRONTEND_DIR/"
+            if [ -d "$TMP_FRONTEND/frontend-out/frontend" ]; then
+              sudo cp -r "$TMP_FRONTEND/frontend-out/frontend/." "$FRONTEND_DIR/"
+            elif [ -d "$TMP_FRONTEND/frontend-out" ]; then
+              sudo cp -r "$TMP_FRONTEND/frontend-out/." "$FRONTEND_DIR/"
             else
               sudo cp -r "$TMP_FRONTEND/." "$FRONTEND_DIR/"
             fi
@@ -127,10 +130,17 @@ jobs:
             fi
             echo "✅ Frontend deployed (port 3000)"
 
-            # Deploy backend (NestJS)
+            # Deploy backend (NestJS). Artifact extracts as backend-out/backend/... (paths preserved).
             BACKEND_DIR="/var/www/html/jwell_b2b/jwell_b2b_backend"
+            TMP_BACKEND="/tmp/jwell_b2b/jwell_b2b_backend"
             sudo mkdir -p $BACKEND_DIR
-            sudo cp -r /tmp/jwell_b2b/jwell_b2b_backend/. $BACKEND_DIR/
+            if [ -d "$TMP_BACKEND/backend-out/backend" ]; then
+              sudo cp -r "$TMP_BACKEND/backend-out/backend/." "$BACKEND_DIR/"
+            elif [ -d "$TMP_BACKEND/backend-out" ]; then
+              sudo cp -r "$TMP_BACKEND/backend-out/." "$BACKEND_DIR/"
+            else
+              sudo cp -r "$TMP_BACKEND/." "$BACKEND_DIR/"
+            fi
             cd $BACKEND_DIR
             sudo npm install --omit=dev
             sudo npx prisma generate
