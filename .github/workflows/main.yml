@@ -7,15 +7,21 @@ on:
 
 jobs:
   build:
+    name: 🏗 Build
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
 
       # ---------- FRONTEND ----------
       - name: Build frontend
@@ -53,22 +59,25 @@ jobs:
             package.json \
             package-lock.json
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: bundles
           path: artifacts/*.tgz
 
   deploy:
+    name: 🚀 Deploy to VPS
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
           name: bundles
           path: artifacts
 
-      - name: Upload bundles
+      - name: Upload bundles to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -88,7 +97,7 @@ jobs:
             set -e
 
             APP=/var/www/html/jwell_b2b
-            mkdir -p $APP/{frontend,backend,backups}
+            mkdir -p $APP/{frontend,backend}
 
             tar -xzf /tmp/jwell_deploy/frontend.tgz -C $APP/frontend
             tar -xzf /tmp/jwell_deploy/backend.tgz -C $APP/backend
