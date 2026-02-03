@@ -2,72 +2,49 @@ name: 🚀 Build & Deploy (Next + Nest)
 
 on:
   push:
-    branches:
-      - nestjs_backend
+    branches: [nestjs_backend]
   workflow_dispatch:
 
 jobs:
   build:
-    name: 🏗 Build
     runs-on: ubuntu-latest
-    env:
-      CI: "true"
 
     steps:
-      - name: 🚚 Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: |
-            frontend/package-lock.json
-            backend/package-lock.json
+          node-version: 22
+          cache: npm
 
       # ---------- FRONTEND ----------
-      - name: 📦 Install & build frontend (standalone)
+      - name: Build frontend
         working-directory: frontend
-        shell: bash
         run: |
-          set -euo pipefail
-          export BACKEND_URL="http://127.0.0.1:4000"
-
           npm ci
           npm run build
-
           test -f .next/standalone/server.js
-          test -d .next/static
 
-      - name: 📦 Pack frontend artifact
-        shell: bash
+      - name: Pack frontend
         run: |
-          set -euo pipefail
           mkdir -p artifacts
           tar -czf artifacts/frontend.tgz \
             -C frontend \
             .next/standalone \
             .next/static \
             package.json \
-            package-lock.json \
             next.config.mjs
 
       # ---------- BACKEND ----------
-      - name: 📦 Install & build backend
+      - name: Build backend
         working-directory: backend
-        shell: bash
         run: |
-          set -euo pipefail
           npm ci
-          npx prisma generate --config=./prisma.config.ts
+          npx prisma generate
           npm run build
 
-      - name: 📦 Pack backend artifact
-        shell: bash
+      - name: Pack backend
         run: |
-          set -euo pipefail
-          mkdir -p artifacts
           tar -czf artifacts/backend.tgz \
             -C backend \
             dist \
@@ -76,85 +53,56 @@ jobs:
             package.json \
             package-lock.json
 
-      - name: ⬆️ Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: deploy-bundles
+          name: bundles
           path: artifacts/*.tgz
 
   deploy:
-    name: 🚀 Deploy to VPS
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/nestjs_backend'
 
     steps:
-      - name: ⬇️ Download artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: deploy-bundles
+          name: bundles
           path: artifacts
 
-      - name: 📤 Upload bundles to server
+      - name: Upload bundles
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          source: "artifacts/frontend.tgz,artifacts/backend.tgz"
+          port: 22
+          source: "artifacts/*.tgz"
           target: "/tmp/jwell_deploy"
 
-      - name: 🚀 Deploy & restart services (PM2)
+      - name: Deploy on server
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            set -euo pipefail
+            set -e
 
-            APP_ROOT="/var/www/html/jwell_b2b"
-            FRONT_DIR="$APP_ROOT/frontend"
-            BACK_DIR="$APP_ROOT/backend"
-            BKP_DIR="$APP_ROOT/backups"
-            TS="$(date +%Y%m%d_%H%M%S)"
+            APP=/var/www/html/jwell_b2b
+            mkdir -p $APP/{frontend,backend,backups}
 
-            sudo mkdir -p "$FRONT_DIR" "$BACK_DIR" "$BKP_DIR"
+            tar -xzf /tmp/jwell_deploy/frontend.tgz -C $APP/frontend
+            tar -xzf /tmp/jwell_deploy/backend.tgz -C $APP/backend
 
-            echo "=== Backup ==="
-            sudo tar -czf "$BKP_DIR/backup_$TS.tgz" -C "$APP_ROOT" frontend backend || true
+            cd $APP/backend
+            npm ci --omit=dev
+            npx prisma generate
+            npx prisma migrate deploy || true
 
-            echo "=== Deploy frontend ==="
-            sudo rm -rf "$FRONT_DIR"/*
-            sudo tar -xzf /tmp/jwell_deploy/artifacts/frontend.tgz -C "$FRONT_DIR"
-
-            echo "=== Deploy backend ==="
-            sudo rm -rf "$BACK_DIR"/*
-            sudo tar -xzf /tmp/jwell_deploy/artifacts/backend.tgz -C "$BACK_DIR"
-
-            echo "=== Backend install & prisma ==="
-            cd "$BACK_DIR"
-
-            if [ ! -f ".env" ]; then
-              echo "❌ .env missing in backend"
-              exit 1
-            fi
-
-            sudo npm ci --omit=dev
-            sudo npx prisma migrate deploy --config prisma.config.ts
-            sudo npx prisma generate --config prisma.config.ts
-
-            echo "=== PM2 restart ==="
             pm2 delete jwell_backend || true
-            pm2 delete jwell_frontend || true
+            PORT=4000 pm2 start dist/src/main.js --name jwell_backend
 
-            PORT=4000 pm2 start "$BACK_DIR/dist/src/main.js" --name jwell_backend
-            PORT=3000 pm2 start node --name jwell_frontend -- "$FRONT_DIR/.next/standalone/server.js"
+            cd $APP/frontend
+            pm2 delete jwell_frontend || true
+            PORT=3000 pm2 start node --name jwell_frontend -- .next/standalone/server.js
 
             pm2 save
-
-            echo "=== Health check ==="
-            curl -I http://127.0.0.1:3000 || true
-            curl -I http://127.0.0.1:4000 || true
-
-            echo "✅ DEPLOY DONE"
