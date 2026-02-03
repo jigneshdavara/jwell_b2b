@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // In CI (GitHub Actions sets CI=true), produce static files in frontend/out for deployment
-    ...((process.env.CI === 'true' || process.env.STATIC_EXPORT === '1') && { output: 'export' }),
     async redirects() {
         return [
             {

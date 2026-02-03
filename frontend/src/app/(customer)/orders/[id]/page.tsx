@@ -39,7 +39,8 @@ const formatDate = (input?: string | null) =>
     : "N/A";
 
 export default function OrderShowPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string | undefined;
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [productDetailsModalOpen, setProductDetailsModalOpen] =

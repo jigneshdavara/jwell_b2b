@@ -16,10 +16,11 @@ import {
 } from "@/lib/validation/auth.schema";
 
 export default function ResetPasswordPage() {
-  const { token } = useParams();
+  const params = useParams();
+  const token = params?.token as string | undefined;
   const searchParams = useSearchParams();
   const router = useRouter();
-  const email = searchParams.get("email") || "";
+  const email = searchParams?.get("email") || "";
   const [loading, setLoading] = useState(false);
 
   const {

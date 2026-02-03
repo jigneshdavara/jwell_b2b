@@ -39,8 +39,9 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
     '/onboarding/kyc',
   ];
 
-  const isPublicPath = publicPaths.some(path => pathname === path || (path !== '/' && pathname.startsWith(path)));
-  const isAuthenticatedPath = authenticatedPaths.some(path => pathname === path || pathname.startsWith(path));
+  const safePathname = pathname ?? '';
+  const isPublicPath = publicPaths.some(path => pathname === path || (path !== '/' && safePathname.startsWith(path)));
+  const isAuthenticatedPath = authenticatedPaths.some(path => pathname === path || safePathname.startsWith(path));
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -213,12 +214,12 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
     '/confirm-password',
   ];
 
-  const isAuthPage = authPages.some(page => pathname === page || pathname.startsWith(page));
+  const isAuthPage = authPages.some(page => pathname === page || safePathname.startsWith(page));
 
   // For all auth pages, check Redux state and redirect if authenticated
   // This must be in useEffect to avoid "Cannot update component during render" error
   useEffect(() => {
-    if (isPublicPath && isAuthPage && pathname !== '/') {
+    if (isPublicPath && isAuthPage && safePathname !== '/') {
       if (authState.isAuthenticated && authState.user && authState.token) {
         // User is authenticated - redirect immediately without rendering auth pages
         const user = authState.user;

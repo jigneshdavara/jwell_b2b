@@ -28,7 +28,7 @@ import type { ProductDetail, ConfigurationOption, ConfigMetal, ConfigDiamond } f
 export default function CatalogShowPage() {
     const router = useRouter();
     const params = useParams();
-    const productId = Number(params.id);
+    const productId = Number(params?.id ?? 0);
     const dispatch = useAppDispatch();
     const refreshCart = () => dispatch(fetchCart());
 

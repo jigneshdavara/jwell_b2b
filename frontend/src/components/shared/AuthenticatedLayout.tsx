@@ -170,7 +170,7 @@ export default function AuthenticatedLayout({
             {
                 label: 'Quotations',
                 href: route('frontend.quotations.index'),
-                active: pathname.startsWith('/quotations'),
+                active: pathname?.startsWith('/quotations') ?? false,
             },
         ];
     }, [isCustomer, pathname]);
@@ -181,7 +181,7 @@ export default function AuthenticatedLayout({
                   {
                       label: 'Admin',
                       href: route('admin.dashboard'),
-                      active: pathname.startsWith('/admin'),
+                      active: pathname?.startsWith('/admin') ?? false,
                   },
               ]
             : [];
@@ -192,7 +192,7 @@ export default function AuthenticatedLayout({
                   {
                       label: 'Production',
                       href: route('production.dashboard'),
-                      active: pathname.startsWith('/production'),
+                      active: pathname?.startsWith('/production') ?? false,
                   },
               ]
             : [];

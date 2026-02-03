@@ -87,7 +87,7 @@ export default function CatalogPage() {
                 // For single values, pass as single value (backend @Transform(toArray) will handle it)
                 // For multiple values, pass as array
                 ['brand', 'metal', 'metal_purity', 'metal_tone', 'diamond', 'category', 'catalog'].forEach(key => {
-                    const values = searchParams.getAll(key);
+                    const values = searchParams?.getAll(key) ?? [];
                     if (values.length > 0) {
                         // If single value, pass as string; if multiple, pass as array
                         filters[key] = values.length === 1 ? values[0] : values;
@@ -96,13 +96,13 @@ export default function CatalogPage() {
                 
                 // Extract single params
                 ['search', 'sort', 'ready_made'].forEach(key => {
-                    const value = searchParams.get(key);
+                    const value = searchParams?.get(key);
                     if (value) filters[key] = value;
                 });
                 
                 // Extract price range
-                const priceMin = searchParams.get('price_min');
-                const priceMax = searchParams.get('price_max');
+                const priceMin = searchParams?.get('price_min');
+                const priceMax = searchParams?.get('price_max');
                 if (priceMin) filters.price_min = parseInt(priceMin);
                 if (priceMax) filters.price_max = parseInt(priceMax);
                 
@@ -137,14 +137,14 @@ export default function CatalogPage() {
                     
                     // Add previous link
                     if (apiCurrentPage > 1) {
-                        const prevParams = new URLSearchParams(searchParams.toString());
+                        const prevParams = new URLSearchParams(searchParams?.toString() ?? '');
                         prevParams.set('page', String(apiCurrentPage - 1));
                         links.push({ url: `?${prevParams.toString()}`, label: 'Previous', active: false });
                     }
                     
                     // Add page number links
                     for (let i = 1; i <= apiLastPage; i++) {
-                        const pageParams = new URLSearchParams(searchParams.toString());
+                        const pageParams = new URLSearchParams(searchParams?.toString() ?? '');
                         pageParams.set('page', String(i));
                         links.push({ 
                             url: `?${pageParams.toString()}`, 
@@ -155,7 +155,7 @@ export default function CatalogPage() {
                     
                     // Add next link
                     if (apiCurrentPage < apiLastPage) {
-                        const nextParams = new URLSearchParams(searchParams.toString());
+                        const nextParams = new URLSearchParams(searchParams?.toString() ?? '');
                         nextParams.set('page', String(apiCurrentPage + 1));
                         links.push({ url: `?${nextParams.toString()}`, label: 'Next', active: false });
                     }
@@ -165,8 +165,8 @@ export default function CatalogPage() {
                 products: {
                             data: products,
                             links,
-                            next_page_url: apiCurrentPage < apiLastPage ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(apiCurrentPage + 1) }).toString()}` : null,
-                            prev_page_url: apiCurrentPage > 1 ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(apiCurrentPage - 1) }).toString()}` : null,
+                            next_page_url: apiCurrentPage < apiLastPage ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams ?? []), page: String(apiCurrentPage + 1) }).toString()}` : null,
+                            prev_page_url: apiCurrentPage > 1 ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams ?? []), page: String(apiCurrentPage - 1) }).toString()}` : null,
                 },
                 facets: {
                             ...apiData.facets,
@@ -265,7 +265,7 @@ export default function CatalogPage() {
     const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
 
     const updateQueryParams = (newFilters: Record<string, any>) => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams(searchParams?.toString() ?? '');
         Object.entries(newFilters).forEach(([key, value]) => {
             if (value === undefined || value === null) {
                 params.delete(key);
@@ -297,7 +297,7 @@ export default function CatalogPage() {
             
             // Extract array params
             ['brand', 'metal', 'metal_purity', 'metal_tone', 'diamond', 'category', 'catalog'].forEach(key => {
-                const values = searchParams.getAll(key);
+                const values = searchParams?.getAll(key) ?? [];
                 if (values.length > 0) {
                     filters[key] = values.length === 1 ? values[0] : values;
                 }
@@ -305,13 +305,13 @@ export default function CatalogPage() {
             
             // Extract single params
             ['search', 'sort', 'ready_made'].forEach(key => {
-                const value = searchParams.get(key);
+                const value = searchParams?.get(key);
                 if (value) filters[key] = value;
             });
             
             // Extract price range
-            const priceMin = searchParams.get('price_min');
-            const priceMax = searchParams.get('price_max');
+            const priceMin = searchParams?.get('price_min');
+            const priceMax = searchParams?.get('price_max');
             if (priceMin) filters.price_min = parseInt(priceMin);
             if (priceMax) filters.price_max = parseInt(priceMax);
             
