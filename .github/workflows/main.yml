@@ -109,7 +109,7 @@ jobs:
         password: ${{ secrets.SERVER_PASSWORD }}
         script: |
           # Deploy frontend (Next.js - npm start)
-          FRONTEND_DIR="/var/www/jwell_b2b_frontend"
+          FRONTEND_DIR="/var/www/html/jwell_b2b_frontend"
           sudo mkdir -p $FRONTEND_DIR
           sudo cp -r /tmp/jwell_b2b_frontend/* $FRONTEND_DIR/
           cd $FRONTEND_DIR
@@ -121,7 +121,7 @@ jobs:
           echo "✅ Frontend deployed (port 3000)"
 
           # Deploy backend (NestJS)
-          BACKEND_DIR="/var/www/jwell_b2b_api"
+          BACKEND_DIR="/var/www/html/jwell_b2b_api"
           sudo mkdir -p $BACKEND_DIR
           sudo cp -r /tmp/jwell_b2b_backend/* $BACKEND_DIR/
           cd $BACKEND_DIR
