@@ -58,12 +58,15 @@ jobs:
         working-directory: backend
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           npm ci
           npx prisma generate
-          echo "=== Running Nest build with verbose output ==="
-          npx nest build --verbose || npm run build -- --verbose
       
+          echo "=== TypeScript check (shows real errors) ==="
+          npx tsc -p tsconfig.build.json --pretty false
+      
+          echo "=== Nest build ==="
+          npm run build
 
       - name: 📦 Pack backend artifact
         shell: bash
