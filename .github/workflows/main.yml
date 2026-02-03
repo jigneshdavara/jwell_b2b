@@ -1,11 +1,10 @@
+name: 🚀 Build & Deploy (Next + Nest)
+
 on:
   push:
     branches:
-    - nestjs_backend
+      - nestjs_backend
   workflow_dispatch:
-
-
-name: 🚀 Build and Deploy website
 
 jobs:
   build:
@@ -13,156 +12,150 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: true
+
     steps:
-      - name: 🚚 Get latest code
+      - name: 🚚 Checkout
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node.js
+      # Use Node 20 LTS for stability
+      - name: 🔧 Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
+          cache: "npm"
 
-      - name: 📦 Install & build frontend
+      # ---------- FRONTEND BUILD ----------
+      - name: 📦 Install & build frontend (standalone)
         working-directory: frontend
         run: |
-          npm install
+          npm ci
           npm run build
+          test -f .next/standalone/server.js
 
-      - name: 📋 Verify frontend build
+      - name: 📦 Pack frontend artifact
         run: |
-          if [ ! -d frontend/.next ]; then
-            echo "::error::frontend/.next is missing. Build may have failed."
-            exit 1
-          fi
-          echo "Frontend build ready"
+          mkdir -p artifacts
+          tar -czf artifacts/frontend.tgz \
+            -C frontend \
+            .next/standalone \
+            .next/static \
+            public \
+            package.json \
+            package-lock.json
 
+      # ---------- BACKEND BUILD ----------
       - name: 📦 Install & build backend
         working-directory: backend
         run: |
-          npm install
+          npm ci
           npx prisma generate
           npm run build
+          test -f dist/main.js
 
-      - name: 📦 Archive frontend artifacts
+      - name: 📦 Pack backend artifact
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/backend.tgz \
+            -C backend \
+            dist \
+            prisma \
+            package.json \
+            package-lock.json \
+            prisma.config.ts || true
+
+      - name: ⬆️ Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-app
-          include-hidden-files: true
-          path: |
-            frontend/.next
-            frontend/package.json
-            frontend/package-lock.json
-            frontend/next.config.mjs
+          name: deploy-bundles
+          path: artifacts/*.tgz
 
-      - name: 📦 Archive backend artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-app
-          path: |
-            backend/dist
-            backend/package.json
-            backend/package-lock.json
-            backend/prisma
-            backend/prisma.config.ts
-
-  deploy-hostinger-password:
-    name: 🚀 Deploy to Hostinger (Password Auth)
+  deploy:
+    name: 🚀 Deploy to VPS
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/nestjs_backend'
 
     steps:
-      - name: 📥 Download frontend artifact
+      - name: ⬇️ Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: frontend-app
-          path: frontend-out
+          name: deploy-bundles
+          path: artifacts
 
-      - name: 🔄 Unhide .next for SCP (scp-action skips dot dirs)
-        run: |
-          if [ -d frontend-out/frontend/.next ]; then mv frontend-out/frontend/.next frontend-out/frontend/next-build; fi
-          if [ -d frontend-out/.next ]; then mv frontend-out/.next frontend-out/next-build; fi
-
-      - name: 📥 Download backend artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-app
-          path: backend-out
-
-      - name: 📤 Upload frontend to temp on server
+      # Upload tarballs (tar avoids ".next hidden dir" problems completely)
+      - name: 📤 Upload bundles to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          source: "frontend-out"
-          target: "/tmp/jwell_b2b/jwell_b2b_frontend"
+          source: "artifacts/frontend.tgz,artifacts/backend.tgz"
+          target: "/tmp/jwell_deploy"
 
-      - name: 📤 Upload backend to temp on server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          source: "backend-out"
-          target: "/tmp/jwell_b2b/jwell_b2b_backend"
-
-      - name: 🚀 Deploy frontend & backend
+      - name: 🚀 Deploy & restart (PM2)
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            # Deploy frontend to Apache
-            if [ -d "/var/www/html/jwell_b2b/jwell_b2b_frontend" ]; then
-              sudo mkdir -p /var/www/html/jwell_b2b_backups
-              sudo cp -r /var/www/html/jwell_b2b/jwell_b2b_frontend /var/www/html/jwell_b2b_backups/jwell_b2b_backup_$(date +%Y%m%d_%H%M%S)
-              sudo rm -rf /var/www/html/jwell_b2b/jwell_b2b_frontend
-              echo "✅ Frontend backup created"
-            fi
-            sudo mkdir -p /var/www/html/jwell_b2b/jwell_b2b_frontend
-            # Copy contents of frontend-out into jwell_b2b_frontend (no frontend-out subfolder)
-            TMP_F="/tmp/jwell_b2b/jwell_b2b_frontend"
-            if [ -d "${TMP_F}/frontend-out" ]; then
-              sudo cp -r "${TMP_F}/frontend-out/." /var/www/html/jwell_b2b/jwell_b2b_frontend/
-            else
-              sudo cp -r "${TMP_F}/." /var/www/html/jwell_b2b/jwell_b2b_frontend/
-            fi
-            # Restore .next (SCP sends it as next-build because it skips hidden dirs)
-            if [ -d /var/www/html/jwell_b2b/jwell_b2b_frontend/next-build ]; then
-              sudo mv /var/www/html/jwell_b2b/jwell_b2b_frontend/next-build /var/www/html/jwell_b2b/jwell_b2b_frontend/.next
-            fi
-            sudo chown -R www-data:www-data /var/www/html/jwell_b2b/jwell_b2b_frontend
-            sudo chmod -R 755 /var/www/html/jwell_b2b/jwell_b2b_frontend
+            set -e
 
-            # Deploy backend (NestJS). Same as frontend: files directly in jwell_b2b_backend (no backend-out subfolder)
-            BACKEND_DIR="/var/www/html/jwell_b2b/jwell_b2b_backend"
-            TMP_B="/tmp/jwell_b2b/jwell_b2b_backend"
-            if [ -d "$BACKEND_DIR" ]; then
-              sudo mkdir -p /var/www/html/jwell_b2b_backups
-              sudo cp -r $BACKEND_DIR /var/www/html/jwell_b2b_backups/jwell_b2b_backend_$(date +%Y%m%d_%H%M%S)
-              sudo rm -rf $BACKEND_DIR
-              echo "✅ Backend backup created"
+            APP_ROOT="/var/www/jwell_b2b"
+            FRONT_DIR="$APP_ROOT/frontend"
+            BACK_DIR="$APP_ROOT/backend"
+            BKP_DIR="$APP_ROOT/backups"
+            TS="$(date +%Y%m%d_%H%M%S)"
+
+            sudo mkdir -p "$FRONT_DIR" "$BACK_DIR" "$BKP_DIR"
+
+            # ---------------- BACKUP ----------------
+            if [ -d "$FRONT_DIR/.next" ] || [ -f "$FRONT_DIR/package.json" ]; then
+              sudo tar -czf "$BKP_DIR/frontend_$TS.tgz" -C "$APP_ROOT" frontend || true
+              echo "✅ Frontend backup: $BKP_DIR/frontend_$TS.tgz"
             fi
-            sudo mkdir -p $BACKEND_DIR
-            if [ -d "$TMP_B/backend-out" ]; then
-              sudo cp -r "$TMP_B/backend-out/." $BACKEND_DIR/
-            else
-              sudo cp -r "$TMP_B/." $BACKEND_DIR/
+
+            if [ -d "$BACK_DIR/dist" ] || [ -f "$BACK_DIR/package.json" ]; then
+              sudo tar -czf "$BKP_DIR/backend_$TS.tgz" -C "$APP_ROOT" backend || true
+              echo "✅ Backend backup: $BKP_DIR/backend_$TS.tgz"
             fi
-            sudo chown -R www-data:www-data $BACKEND_DIR
-            sudo chmod -R 755 $BACKEND_DIR
-            cd $BACKEND_DIR
-            sudo npm install --omit=dev
+
+            # ---------------- DEPLOY FRONTEND ----------------
+            sudo rm -rf "$FRONT_DIR"/*
+            sudo tar -xzf /tmp/jwell_deploy/artifacts/frontend.tgz -C "$FRONT_DIR"
+
+            # ---------------- DEPLOY BACKEND ----------------
+            sudo rm -rf "$BACK_DIR"/*
+            sudo tar -xzf /tmp/jwell_deploy/artifacts/backend.tgz -C "$BACK_DIR"
+
+            # ---------------- INSTALL PROD DEPS (backend only) ----------------
+            # Frontend standalone includes its own minimal node_modules inside .next/standalone
+            cd "$BACK_DIR"
+            sudo npm ci --omit=dev
             sudo npx prisma generate
             sudo npx prisma migrate deploy 2>/dev/null || true
-            sudo chown -R www-data:www-data $BACKEND_DIR
-            # Restart backend (PM2 or systemd - adjust if you use a different process manager)
-            if command -v pm2 &> /dev/null; then
-              pm2 restart jwell_b2b_backend 2>/dev/null || pm2 start dist/main.js --name jwell_b2b_backend
+
+            # ---------------- PM2 START/RESTART ----------------
+            # Frontend standalone entry
+            FRONT_ENTRY="$FRONT_DIR/.next/standalone/server.js"
+            # Ensure Next can find static assets
+            # Next standalone expects .next/static and public relative to project root; we deployed them.
+
+            if ! command -v pm2 >/dev/null 2>&1; then
+              echo "❌ pm2 not found on server. Install pm2 first."
+              exit 1
             fi
 
-            sudo a2enmod rewrite headers expires deflate proxy proxy_http
-            sudo systemctl reload apache2
-            echo "✅ Deployment completed (frontend + backend)"
+            # Restart or start frontend
+            pm2 describe jwell_frontend >/dev/null 2>&1 \
+              && pm2 restart jwell_frontend \
+              || pm2 start node --name jwell_frontend -- "$FRONT_ENTRY"
+
+            # Restart or start backend
+            pm2 describe jwell_backend >/dev/null 2>&1 \
+              && pm2 restart jwell_backend \
+              || pm2 start "$BACK_DIR/dist/main.js" --name jwell_backend
+
+            pm2 save
+
+            echo "✅ Deploy complete: frontend + backend restarted"
