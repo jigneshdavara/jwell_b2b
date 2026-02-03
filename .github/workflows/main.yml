@@ -11,7 +11,7 @@ jobs:
     name: 🏗 Build
     runs-on: ubuntu-latest
     env:
-      CI: true
+      CI: "true"
 
     steps:
       - name: 🚚 Checkout
@@ -28,44 +28,55 @@ jobs:
 
       # ---------- FRONTEND ----------
       - name: 📦 Install & build frontend (standalone)
-      working-directory: frontend
-      shell: bash
-      run: |
-        set -e
-    
-        export BACKEND_URL="http://127.0.0.1:4000"
-    
-        npm ci
-        npm run build
-    
-        if [ ! -f ".next/standalone/server.js" ]; then
-          echo "❌ Next standalone build failed: server.js not found"
-          exit 1
-        fi
-    
-        echo "✅ Next standalone build OK"
-      
-        
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          export BACKEND_URL="http://127.0.0.1:4000"
+          npm ci
+          npm run build
+          test -f .next/standalone/server.js
+          test -d .next/static
+          echo "✅ Next standalone build OK"
+
+      - name: 📦 Pack frontend artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+
+          ITEMS=".next/standalone .next/static package.json package-lock.json next.config.mjs"
+          if [ -d frontend/public ]; then
+            ITEMS="$ITEMS public"
+          fi
+
+          tar -czf artifacts/frontend.tgz -C frontend $ITEMS
+          ls -lah artifacts/frontend.tgz
 
       # ---------- BACKEND ----------
       - name: 📦 Install & build backend
         working-directory: backend
+        shell: bash
         run: |
+          set -euo pipefail
           npm ci
           npx prisma generate
           npm run build
           test -f dist/main.js
+          echo "✅ Nest build OK"
 
       - name: 📦 Pack backend artifact
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p artifacts
           tar -czf artifacts/backend.tgz \
             -C backend \
             dist \
             prisma \
             package.json \
-            package-lock.json \
-            prisma.config.ts || true
+            package-lock.json
+          ls -lah artifacts/backend.tgz
 
       - name: ⬆️ Upload artifacts
         uses: actions/upload-artifact@v4
@@ -102,7 +113,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            set -e
+            set -euo pipefail
 
             APP_ROOT="/var/www/jwell_b2b"
             FRONT_DIR="$APP_ROOT/frontend"
@@ -139,15 +150,12 @@ jobs:
 
             echo "=== PM2 start/restart ==="
             if ! command -v pm2 >/dev/null 2>&1; then
-              echo "❌ pm2 not installed on server. Install pm2 first."
+              echo "❌ pm2 not installed on server."
               exit 1
             fi
 
-            # FRONTEND: Next standalone entry
             FRONT_ENTRY="$FRONT_DIR/.next/standalone/server.js"
 
-            # Ensure correct ports
-            # Next runs on 3000, Nest runs on 4000
             pm2 describe jwell_frontend >/dev/null 2>&1 \
               && pm2 restart jwell_frontend --update-env \
               || PORT=3000 pm2 start node --name jwell_frontend -- "$FRONT_ENTRY"
@@ -158,7 +166,7 @@ jobs:
 
             pm2 save
 
-            echo "=== Quick local health checks ==="
+            echo "=== Local health checks ==="
             curl -sS -I http://127.0.0.1:3000 >/dev/null && echo "✅ Next up (3000)" || echo "❌ Next not responding"
             curl -sS -I http://127.0.0.1:4000 >/dev/null && echo "✅ Nest up (4000)" || echo "❌ Nest not responding"
 
