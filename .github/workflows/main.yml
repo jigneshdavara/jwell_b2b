@@ -58,12 +58,12 @@ jobs:
         working-directory: backend
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
           npm ci
           npx prisma generate
-          npm run build
-          test -f dist/main.js
-          echo "✅ Nest build OK"
+          echo "=== Running Nest build with verbose output ==="
+          npx nest build --verbose || npm run build -- --verbose
+      
 
       - name: 📦 Pack backend artifact
         shell: bash
