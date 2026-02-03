@@ -165,7 +165,7 @@ jobs:
 
             pm2 describe jwell_backend >/dev/null 2>&1 \
               && pm2 restart jwell_backend --update-env \
-              || PORT=4000 pm2 start "$BACK_DIR/dist/main.js" --name jwell_backend
+              || PORT=4000 pm2 start "$BACK_DIR/dist/src/main.js" --name jwell_backend
 
             pm2 save
 
