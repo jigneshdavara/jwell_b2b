@@ -28,29 +28,23 @@ jobs:
 
       # ---------- FRONTEND ----------
       - name: 📦 Install & build frontend (standalone)
-        working-directory: frontend
-        env:
-          # IMPORTANT: rewrites are computed at build-time in next.config.mjs
-          BACKEND_URL: "http://127.0.0.1:4000"
-        run: |
-          npm ci
-          npm run build
-          test -f .next/standalone/server.js
-          test -d .next/static
-
-          - name: 📦 Pack frontend artifact
-          run: |
-            mkdir -p artifacts
-        
-            TAR_ITEMS=".next/standalone .next/static package.json package-lock.json next.config.mjs"
-        
-            if [ -d frontend/public ]; then
-              TAR_ITEMS="$TAR_ITEMS public"
-            fi
-        
-            tar -czf artifacts/frontend.tgz \
-              -C frontend \
-              $TAR_ITEMS
+      working-directory: frontend
+      shell: bash
+      run: |
+        set -e
+    
+        export BACKEND_URL="http://127.0.0.1:4000"
+    
+        npm ci
+        npm run build
+    
+        if [ ! -f ".next/standalone/server.js" ]; then
+          echo "❌ Next standalone build failed: server.js not found"
+          exit 1
+        fi
+    
+        echo "✅ Next standalone build OK"
+      
         
 
       # ---------- BACKEND ----------
