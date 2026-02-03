@@ -443,9 +443,9 @@ export default function AdminProductEdit() {
                       metadata: variant.metadata ?? {},
                       metals: variant.metals?.map((metal: any) => ({
                           id: metal.id,
-                          metal_id: metal.metal_id ?? '',
-                          metal_purity_id: metal.metal_purity_id ?? '',
-                          metal_tone_id: metal.metal_tone_id ?? '',
+                          metal_id: (metal.metal_id !== '' && metal.metal_id != null) ? (typeof metal.metal_id === 'number' ? metal.metal_id : Number(metal.metal_id)) : ('' as const),
+                          metal_purity_id: (metal.metal_purity_id !== '' && metal.metal_purity_id != null) ? (typeof metal.metal_purity_id === 'number' ? metal.metal_purity_id : Number(metal.metal_purity_id)) : ('' as const),
+                          metal_tone_id: (metal.metal_tone_id !== '' && metal.metal_tone_id != null) ? (typeof metal.metal_tone_id === 'number' ? metal.metal_tone_id : Number(metal.metal_tone_id)) : ('' as const),
                           metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
                       })) ?? [],
                       diamonds: variant.diamonds?.map((diamond: any) => ({
@@ -621,11 +621,13 @@ export default function AdminProductEdit() {
             // Format existing variants to match VariantForm structure
             const formattedVariants: VariantForm[] = product.variants.map((variant: any) => {
                 // Format metals
+                const toMetalId = (v: unknown): number | "" =>
+                    (v !== '' && v != null) ? (typeof v === 'number' ? v : Number(v)) : '';
                 const formattedMetals: VariantMetalForm[] = (variant.metals || []).map((metal: any) => ({
                     id: metal.id,
-                    metal_id: metal.metal_id ?? '',
-                    metal_purity_id: metal.metal_purity_id ?? '',
-                    metal_tone_id: metal.metal_tone_id ?? '',
+                    metal_id: toMetalId(metal.metal_id),
+                    metal_purity_id: toMetalId(metal.metal_purity_id),
+                    metal_tone_id: toMetalId(metal.metal_tone_id),
                     metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
                 }));
 
@@ -636,12 +638,13 @@ export default function AdminProductEdit() {
                     diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
                 }));
 
+                const firstMetal = variant.metals?.[0];
                 return {
                     id: variant.id,
                     sku: variant.sku ?? '',
                     label: variant.label ?? '',
-                    metal_id: variant.metals?.[0]?.metal_id ?? '',
-                    metal_purity_id: variant.metals?.[0]?.metal_purity_id ?? '',
+                    metal_id: toMetalId(firstMetal?.metal_id),
+                    metal_purity_id: toMetalId(firstMetal?.metal_purity_id),
                     diamond_option_key: variant.metadata?.diamond_option_key ?? null,
                     size_id: variant.metadata?.size_id ?? variant.size_id ?? null,
                     is_default: variant.is_default ?? false,
@@ -838,7 +841,7 @@ export default function AdminProductEdit() {
     const recalculateVariants = useCallback(
         (draft: ProductFormData) =>
             (draft.variants || []).map((variant, index) => {
-                const meta = buildVariantMeta(variant, draft);
+                const meta = buildVariantMeta(variant as VariantForm, draft);
                 const previousAutoLabel = (variant.metadata?.auto_label as string | undefined) ?? '';
                 const shouldReplaceLabel = !variant.label || variant.label === previousAutoLabel;
 
@@ -1012,7 +1015,7 @@ export default function AdminProductEdit() {
                     .sort()
                     .join('|');
                 
-                return prev.map((variant: VariantForm) => {
+                return prev.map((variant) => {
                     const variantMetals = (variant.metals || []).filter(
                         (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                     );
@@ -1049,7 +1052,7 @@ export default function AdminProductEdit() {
             }
             
             // Update single variant
-            return prev.map((variant: VariantForm, idx: number) => {
+            return prev.map((variant, idx) => {
                 if (idx !== index) return variant;
                 
                 const updated = { ...variant };
@@ -1194,7 +1197,7 @@ export default function AdminProductEdit() {
         // Update generatedMatrixVariants
         setGeneratedMatrixVariants((prev) => {
             if (prev.length === 0) return prev;
-            return prev.map((variant: VariantForm, idx: number) => {
+            return prev.map((variant, idx) => {
                 if (idx !== index) {
                     return variant;
                 }
@@ -1261,7 +1264,7 @@ export default function AdminProductEdit() {
         // Update generatedMatrixVariants
         setGeneratedMatrixVariants((prev) => {
             if (prev.length === 0) return prev;
-            return prev.map((variant: VariantForm, idx: number) => ({
+            return prev.map((variant, idx) => ({
                 ...variant,
                 is_default: idx === index,
             }));
@@ -1269,18 +1272,18 @@ export default function AdminProductEdit() {
         
         // Also update form data (for backward compatibility)
         const currentVariants = watch('variants') || [];
-        setValue('variants', currentVariants.map((variant: VariantForm, idx: number) => ({
+        setValue('variants', currentVariants.map((variant, idx) => ({
             ...variant,
             is_default: idx === index,
             metals: variant.metals ?? [],
             diamonds: variant.diamonds ?? [],
-        })) as VariantForm[]);
+        })));
     };
 
     const addDiamondToVariant = (variantIndex: number) => {
         const prev = data;
         if (prev && prev.variants) {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = prev.variants.map((variant, idx) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -1301,7 +1304,7 @@ export default function AdminProductEdit() {
     const removeDiamondFromVariant = (variantIndex: number, diamondIndex: number) => {
         const prev = data;
         if (prev && prev.variants) {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = prev.variants.map((variant, idx) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -1327,12 +1330,12 @@ export default function AdminProductEdit() {
     ) => {
         const prev = data;
         if (prev && prev.variants) {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = prev.variants.map((variant, idx) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
                 const currentDiamonds = variant.diamonds || [];
-                const updatedDiamonds = currentDiamonds.map((diamond: VariantDiamondForm, dIdx: number) => {
+                const updatedDiamonds = currentDiamonds.map((diamond, dIdx) => {
                     if (dIdx !== diamondIndex) {
                         return diamond;
                     }
@@ -1354,12 +1357,18 @@ export default function AdminProductEdit() {
         }
     };
 
+    const normalizeMetalFieldValue = (field: keyof VariantMetalForm, value: string | number | ''): number | "" | string =>
+        (field === 'metal_id' || field === 'metal_purity_id' || field === 'metal_tone_id')
+            ? (value === '' ? '' : (typeof value === 'number' ? value : Number(value)))
+            : value;
+
     const updateMetalInVariant = (
         variantIndex: number,
         metalIndex: number,
         field: keyof VariantMetalForm,
         value: string | number | '',
     ) => {
+        const normalizedValue = normalizeMetalFieldValue(field, value);
         // Update generatedMatrixVariants first (what's displayed in table)
         setGeneratedMatrixVariants((prev) => {
             if (prev.length === 0) return prev;
@@ -1380,7 +1389,7 @@ export default function AdminProductEdit() {
                     .sort()
                     .join('|');
                 
-                return prev.map((variant: VariantForm) => {
+                return prev.map((variant) => {
                     const variantMetals = (variant.metals || []).filter(
                         (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                     );
@@ -1391,13 +1400,13 @@ export default function AdminProductEdit() {
                     
                     if (variantMetalsKey === targetMetalsKey) {
                         const currentMetals = variant.metals || [];
-                        const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                        const updatedMetals = currentMetals.map((metal, mIdx) => {
                             if (mIdx !== metalIndex) {
                                 return metal;
                             }
                             return {
                                 ...metal,
-                                [field]: value,
+                                [field]: normalizedValue,
                             };
                         });
                         return {
@@ -1410,18 +1419,18 @@ export default function AdminProductEdit() {
             }
             
             // Update single variant
-            return prev.map((variant: VariantForm, idx: number) => {
+            return prev.map((variant, idx) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
                 const currentMetals = variant.metals || [];
-                const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                const updatedMetals = currentMetals.map((metal, mIdx) => {
                     if (mIdx !== metalIndex) {
                         return metal;
                     }
                     return {
                         ...metal,
-                        [field]: value,
+                        [field]: normalizedValue,
                     };
                 });
                 return {
@@ -1462,13 +1471,13 @@ export default function AdminProductEdit() {
                 
                 if (variantMetalsKey === targetMetalsKey) {
                     const currentMetals = variant.metals || [];
-                    const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                    const updatedMetals = currentMetals.map((metal, mIdx) => {
                         if (mIdx !== metalIndex) {
                             return metal;
                         }
                         return {
                             ...metal,
-                            [field]: value,
+                            [field]: normalizedValue,
                         };
                     });
                     return {
@@ -1479,18 +1488,18 @@ export default function AdminProductEdit() {
                 return variant;
             });
         } else {
-            updatedVariants = currentVariants.map((variant: VariantForm, idx: number) => {
+            updatedVariants = currentVariants.map((variant, idx) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
                 const currentMetals = variant.metals || [];
-                const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                const updatedMetals = currentMetals.map((metal, mIdx) => {
                     if (mIdx !== metalIndex) {
                         return metal;
                     }
                     return {
                         ...metal,
-                        [field]: value,
+                        [field]: normalizedValue,
                     };
                 });
                 return {
@@ -1508,13 +1517,7 @@ export default function AdminProductEdit() {
     };
 
     const generateVariantMatrixForData = (prev: ProductFormData): ProductFormData => {
-        return generateVariantMatrixUtil({
-            formData: prev,
-            parentCategories: parentCategories,
-            product: product,
-            emptyVariant: emptyVariant,
-            recalculateVariants: recalculateVariants,
-        });
+        return generateVariantMatrixUtil({ formData: prev, parentCategories, product, emptyVariant, recalculateVariants } as never) as ProductFormData;
     };
 
     const generateVariantMatrix = () => {
@@ -2279,7 +2282,12 @@ export default function AdminProductEdit() {
             } else {
                 // Create new product
                 const response = await adminService.createProduct(browserFormData);
-                const newProductId = response.data.id;
+                const newProductId = response.data?.data?.id ?? response.data?.id;
+                if (!newProductId) {
+                    console.error('Create product response missing id:', response.data);
+                    toastError('Product created but could not redirect. Please refresh the products list.');
+                    return;
+                }
                 toastSuccess('Product created successfully!');
                 router.push(`/admin/products/${newProductId}/edit`);
             }
@@ -2407,7 +2415,7 @@ export default function AdminProductEdit() {
                             onDescriptionChange={handleDescriptionChange}
                             error={typeof errors.description === 'string' 
                                 ? errors.description 
-                                : errors.description?.message}
+                                : (errors.description as { message?: string })?.message}
                         />
 
                         <MediaSection
@@ -2533,7 +2541,7 @@ export default function AdminProductEdit() {
                                 }, [generatedMatrixVariants, watch('variants'), generatedShowAllVariantsBySize]).map(({ variant, index, group }) => {
                                     // Generate unique key for this variant
                                     const variantKey = variant.id ?? `variant-${index}-${variant.sku ?? ''}-${JSON.stringify(variant.metals?.map(m => `${m.metal_id}-${m.metal_purity_id}-${m.metal_tone_id}`) ?? [])}`;
-                                    const meta = buildVariantMeta(variant, watch() as ProductFormData);
+                                    const meta = buildVariantMeta(variant as VariantForm, watch() as ProductFormData);
                                     const metalLabel = meta.metalTone || '—';
 
                                     const variantMetals = (variant.metals || []).filter(
@@ -2697,7 +2705,7 @@ export default function AdminProductEdit() {
                                                     <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-rose-500">
                                                         {typeof errors[`variants.${index}.sku`] === 'string' 
                                                             ? errors[`variants.${index}.sku`] 
-                                                            : errors[`variants.${index}.sku`]?.message || 'Invalid value'}
+                                                            : (errors[`variants.${index}.sku`] as { message?: string })?.message || 'Invalid value'}
                                                     </p>
                                                 )}
                                             </td>
@@ -2713,7 +2721,7 @@ export default function AdminProductEdit() {
                                                     <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-rose-500">
                                                         {typeof errors[`variants.${index}.label`] === 'string' 
                                                             ? errors[`variants.${index}.label`] 
-                                                            : errors[`variants.${index}.label`]?.message || 'Invalid value'}
+                                                            : (errors[`variants.${index}.label`] as { message?: string })?.message || 'Invalid value'}
                                                     </p>
                                                 )}
                                             </td>
@@ -3017,7 +3025,7 @@ export default function AdminProductEdit() {
                                                 {(formErrors.variants || errors.variants) && (
                                                     <p className="text-xs text-rose-600 font-medium">
                                                         {formErrors.variants?.message || 
-                                                         (typeof errors.variants === 'string' ? errors.variants : errors.variants?.message) || 
+                                                         (typeof errors.variants === 'string' ? errors.variants : (errors.variants as { message?: string })?.message) || 
                                                          'Variants are required to save the product.'}
                                                     </p>
                                                 )}

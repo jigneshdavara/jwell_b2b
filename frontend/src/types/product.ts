@@ -119,15 +119,15 @@ export type ProductDetail = {
 // Admin Product Edit Form Types
 export type VariantMetalForm = {
     id?: number;
-    metal_id: number | string | "";
-    metal_purity_id: number | string | "";
-    metal_tone_id: number | string | "";
+    metal_id: number | "";
+    metal_purity_id: number | "";
+    metal_tone_id: number | "";
     metal_weight: string;
 };
 
 export type VariantDiamondForm = {
     id?: number;
-    diamond_id?: number | "";
+    diamond_id?: number | string | "";
     diamonds_count?: string;
 };
 
@@ -137,7 +137,7 @@ export type VariantForm = {
     label: string;
     metal_id: number | string | "";
     metal_purity_id: number | string | "";
-    diamond_option_key: string | null | undefined;
+    diamond_option_key?: string | null | undefined;
     size_id?: number | null;
     is_default: boolean;
     inventory_quantity?: number | string;
