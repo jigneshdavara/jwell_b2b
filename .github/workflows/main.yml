@@ -118,7 +118,7 @@ jobs:
           script: |
             set -euo pipefail
 
-            APP_ROOT="/var/www/jwell_b2b"
+            APP_ROOT="/var/www/html/jwell_b2b"
             FRONT_DIR="$APP_ROOT/frontend"
             BACK_DIR="$APP_ROOT/backend"
             BKP_DIR="$APP_ROOT/backups"
