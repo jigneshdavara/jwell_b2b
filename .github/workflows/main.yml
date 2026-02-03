@@ -77,6 +77,11 @@ jobs:
           name: frontend-app
           path: frontend-out
 
+      - name: 🔄 Unhide .next for SCP (scp-action skips dot dirs)
+        run: |
+          if [ -d frontend-out/frontend/.next ]; then mv frontend-out/frontend/.next frontend-out/frontend/next-build; fi
+          if [ -d frontend-out/.next ]; then mv frontend-out/.next frontend-out/next-build; fi
+
       - name: 📥 Download backend artifact
         uses: actions/download-artifact@v4
         with:
@@ -122,6 +127,8 @@ jobs:
             else
               sudo cp -r "$TMP_FRONTEND/." "$FRONTEND_DIR/"
             fi
+            # Restore .next (we transferred it as next-build so SCP would include it)
+            if [ -d "$FRONTEND_DIR/next-build" ]; then sudo mv "$FRONTEND_DIR/next-build" "$FRONTEND_DIR/.next"; fi
             cd $FRONTEND_DIR
             sudo npm install --omit=dev
             sudo chown -R www-data:www-data $FRONTEND_DIR
