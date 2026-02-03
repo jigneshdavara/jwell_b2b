@@ -17,7 +17,6 @@ jobs:
       - name: 🚚 Checkout
         uses: actions/checkout@v4
 
-      # IMPORTANT: monorepo lockfiles -> tell setup-node where they are
       - name: 🔧 Setup Node
         uses: actions/setup-node@v4
         with:
@@ -39,17 +38,20 @@ jobs:
           test -f .next/standalone/server.js
           test -d .next/static
 
-      - name: 📦 Pack frontend artifact
-        run: |
-          mkdir -p artifacts
-          tar -czf artifacts/frontend.tgz \
-            -C frontend \
-            .next/standalone \
-            .next/static \
-            public \
-            package.json \
-            package-lock.json \
-            next.config.mjs
+          - name: 📦 Pack frontend artifact
+          run: |
+            mkdir -p artifacts
+        
+            TAR_ITEMS=".next/standalone .next/static package.json package-lock.json next.config.mjs"
+        
+            if [ -d frontend/public ]; then
+              TAR_ITEMS="$TAR_ITEMS public"
+            fi
+        
+            tar -czf artifacts/frontend.tgz \
+              -C frontend \
+              $TAR_ITEMS
+        
 
       # ---------- BACKEND ----------
       - name: 📦 Install & build backend
@@ -90,7 +92,6 @@ jobs:
           name: deploy-bundles
           path: artifacts
 
-      # Tar files avoid ".next hidden dir" SCP bugs
       - name: 📤 Upload bundles to server
         uses: appleboy/scp-action@v0.1.7
         with:
