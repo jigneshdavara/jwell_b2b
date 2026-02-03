@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: true
-      STATIC_EXPORT: '1'
     steps:
     - name: 🚚 Get latest code
       uses: actions/checkout@v4
@@ -29,13 +28,13 @@ jobs:
         npm install
         npm run build
 
-    - name: 📋 Verify frontend static export
+    - name: 📋 Verify frontend build
       run: |
-        if [ ! -d frontend/out ] || [ -z "$(ls -A frontend/out 2>/dev/null)" ]; then
-          echo "::error::frontend/out is missing or empty. Next.js static export (output: export) may not be enabled for CI."
+        if [ ! -d frontend/.next ]; then
+          echo "::error::frontend/.next is missing. Build may have failed."
           exit 1
         fi
-        echo "Frontend static export found: $(ls frontend/out | head -5)"
+        echo "Frontend build ready"
 
     - name: 📦 Install & build backend
       working-directory: backend
@@ -47,8 +46,12 @@ jobs:
     - name: 📦 Archive frontend artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: frontend-site
-        path: frontend/out
+        name: frontend-app
+        path: |
+          frontend/.next
+          frontend/package.json
+          frontend/package-lock.json
+          frontend/next.config.mjs
 
     - name: 📦 Archive backend artifacts
       uses: actions/upload-artifact@v4
@@ -71,7 +74,7 @@ jobs:
     - name: 📥 Download frontend artifact
       uses: actions/download-artifact@v4
       with:
-        name: frontend-site
+        name: frontend-app
         path: frontend-out
 
     - name: 📥 Download backend artifact
@@ -105,17 +108,17 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASSWORD }}
         script: |
-          # Deploy frontend to Apache
-          if [ -d "/var/www/html/jwell_b2b" ]; then
-            sudo mkdir -p /var/www/html/jwell_b2b_backups
-            sudo cp -r /var/www/html/jwell_b2b /var/www/html/jwell_b2b_backups/jwell_b2b_backup_$(date +%Y%m%d_%H%M%S)
-            sudo rm -rf /var/www/html/jwell_b2b
-            echo "✅ Frontend backup created"
+          # Deploy frontend (Next.js - npm start)
+          FRONTEND_DIR="/var/www/jwell_b2b_frontend"
+          sudo mkdir -p $FRONTEND_DIR
+          sudo cp -r /tmp/jwell_b2b_frontend/* $FRONTEND_DIR/
+          cd $FRONTEND_DIR
+          sudo npm install --omit=dev
+          sudo chown -R www-data:www-data $FRONTEND_DIR
+          if command -v pm2 &> /dev/null; then
+            pm2 restart jwell_b2b_frontend 2>/dev/null || pm2 start npm --name jwell_b2b_frontend -- start
           fi
-          sudo mkdir -p /var/www/html/jwell_b2b
-          sudo mv /tmp/jwell_b2b_frontend/* /var/www/html/jwell_b2b/
-          sudo chown -R www-data:www-data /var/www/html/jwell_b2b
-          sudo chmod -R 755 /var/www/html/jwell_b2b
+          echo "✅ Frontend deployed (port 3000)"
 
           # Deploy backend (NestJS)
           BACKEND_DIR="/var/www/jwell_b2b_api"

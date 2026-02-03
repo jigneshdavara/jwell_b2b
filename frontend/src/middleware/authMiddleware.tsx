@@ -243,7 +243,7 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
         router.replace(redirectUrl);
       }
     }
-  }, [pathname, router, isPublicPath, isAuthPage, authState.isAuthenticated, authState.user, authState.token]);
+  }, [safePathname, pathname, router, isPublicPath, isAuthPage, authState.isAuthenticated, authState.user, authState.token]);
 
   // Show loading if user is authenticated and trying to access any auth page
   if (isPublicPath && isAuthPage && pathname !== '/') {
