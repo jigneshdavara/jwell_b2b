@@ -33,25 +33,25 @@ jobs:
         run: |
           set -euo pipefail
           export BACKEND_URL="http://127.0.0.1:4000"
+
           npm ci
           npm run build
+
           test -f .next/standalone/server.js
           test -d .next/static
-          echo "✅ Next standalone build OK"
 
       - name: 📦 Pack frontend artifact
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts
-
-          ITEMS=".next/standalone .next/static package.json package-lock.json next.config.mjs"
-          if [ -d frontend/public ]; then
-            ITEMS="$ITEMS public"
-          fi
-
-          tar -czf artifacts/frontend.tgz -C frontend $ITEMS
-          ls -lah artifacts/frontend.tgz
+          tar -czf artifacts/frontend.tgz \
+            -C frontend \
+            .next/standalone \
+            .next/static \
+            package.json \
+            package-lock.json \
+            next.config.mjs
 
       # ---------- BACKEND ----------
       - name: 📦 Install & build backend
@@ -60,12 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci
-          npx prisma generate
-      
-          echo "=== TypeScript check (shows real errors) ==="
-          npx tsc -p tsconfig.build.json --pretty false
-      
-          echo "=== Nest build ==="
+          npx prisma generate --config=./prisma.config.ts
           npm run build
 
       - name: 📦 Pack backend artifact
@@ -77,9 +72,9 @@ jobs:
             -C backend \
             dist \
             prisma \
+            prisma.config.ts \
             package.json \
             package-lock.json
-          ls -lah artifacts/backend.tgz
 
       - name: ⬆️ Upload artifacts
         uses: actions/upload-artifact@v4
@@ -126,16 +121,8 @@ jobs:
 
             sudo mkdir -p "$FRONT_DIR" "$BACK_DIR" "$BKP_DIR"
 
-            echo "=== Backup old deployments ==="
-            if [ -d "$FRONT_DIR/.next" ] || [ -f "$FRONT_DIR/package.json" ]; then
-              sudo tar -czf "$BKP_DIR/frontend_$TS.tgz" -C "$APP_ROOT" frontend || true
-              echo "✅ Frontend backup: $BKP_DIR/frontend_$TS.tgz"
-            fi
-
-            if [ -d "$BACK_DIR/dist" ] || [ -f "$BACK_DIR/package.json" ]; then
-              sudo tar -czf "$BKP_DIR/backend_$TS.tgz" -C "$APP_ROOT" backend || true
-              echo "✅ Backend backup: $BKP_DIR/backend_$TS.tgz"
-            fi
+            echo "=== Backup ==="
+            sudo tar -czf "$BKP_DIR/backup_$TS.tgz" -C "$APP_ROOT" frontend backend || true
 
             echo "=== Deploy frontend ==="
             sudo rm -rf "$FRONT_DIR"/*
@@ -145,32 +132,29 @@ jobs:
             sudo rm -rf "$BACK_DIR"/*
             sudo tar -xzf /tmp/jwell_deploy/artifacts/backend.tgz -C "$BACK_DIR"
 
-            echo "=== Install backend prod deps + prisma ==="
+            echo "=== Backend install & prisma ==="
             cd "$BACK_DIR"
-            sudo npm ci --omit=dev
-            sudo npx prisma generate
-            sudo npx prisma migrate deploy 2>/dev/null || true
 
-            echo "=== PM2 start/restart ==="
-            if ! command -v pm2 >/dev/null 2>&1; then
-              echo "❌ pm2 not installed on server."
+            if [ ! -f ".env" ]; then
+              echo "❌ .env missing in backend"
               exit 1
             fi
 
-            FRONT_ENTRY="$FRONT_DIR/.next/standalone/server.js"
+            sudo npm ci --omit=dev
+            sudo npx prisma migrate deploy --config prisma.config.ts
+            sudo npx prisma generate --config prisma.config.ts
 
-            pm2 describe jwell_frontend >/dev/null 2>&1 \
-              && pm2 restart jwell_frontend --update-env \
-              || PORT=3000 pm2 start node --name jwell_frontend -- "$FRONT_ENTRY"
+            echo "=== PM2 restart ==="
+            pm2 delete jwell_backend || true
+            pm2 delete jwell_frontend || true
 
-            pm2 describe jwell_backend >/dev/null 2>&1 \
-              && pm2 restart jwell_backend --update-env \
-              || PORT=4000 pm2 start "$BACK_DIR/dist/src/main.js" --name jwell_backend
+            PORT=4000 pm2 start "$BACK_DIR/dist/src/main.js" --name jwell_backend
+            PORT=3000 pm2 start node --name jwell_frontend -- "$FRONT_DIR/.next/standalone/server.js"
 
             pm2 save
 
-            echo "=== Local health checks ==="
-            curl -sS -I http://127.0.0.1:3000 >/dev/null && echo "✅ Next up (3000)" || echo "❌ Next not responding"
-            curl -sS -I http://127.0.0.1:4000 >/dev/null && echo "✅ Nest up (4000)" || echo "❌ Nest not responding"
+            echo "=== Health check ==="
+            curl -I http://127.0.0.1:3000 || true
+            curl -I http://127.0.0.1:4000 || true
 
-            echo "✅ Deployment completed"
+            echo "✅ DEPLOY DONE"
