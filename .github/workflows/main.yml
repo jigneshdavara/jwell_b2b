@@ -122,8 +122,13 @@ jobs:
               echo "✅ Frontend backup created"
             fi
             sudo mkdir -p /var/www/html/jwell_b2b/jwell_b2b_frontend
-            # Use /. so .next and other hidden files are copied; * does not match dotfiles
-            sudo cp -r /tmp/jwell_b2b/jwell_b2b_frontend/. /var/www/html/jwell_b2b/jwell_b2b_frontend/
+            # Copy contents of frontend-out into jwell_b2b_frontend (no frontend-out subfolder)
+            TMP_F="/tmp/jwell_b2b/jwell_b2b_frontend"
+            if [ -d "${TMP_F}/frontend-out" ]; then
+              sudo cp -r "${TMP_F}/frontend-out/." /var/www/html/jwell_b2b/jwell_b2b_frontend/
+            else
+              sudo cp -r "${TMP_F}/." /var/www/html/jwell_b2b/jwell_b2b_frontend/
+            fi
             # Restore .next (SCP sends it as next-build because it skips hidden dirs)
             if [ -d /var/www/html/jwell_b2b/jwell_b2b_frontend/next-build ]; then
               sudo mv /var/www/html/jwell_b2b/jwell_b2b_frontend/next-build /var/www/html/jwell_b2b/jwell_b2b_frontend/.next
@@ -131,10 +136,23 @@ jobs:
             sudo chown -R www-data:www-data /var/www/html/jwell_b2b/jwell_b2b_frontend
             sudo chmod -R 755 /var/www/html/jwell_b2b/jwell_b2b_frontend
 
-            # Deploy backend (NestJS)
+            # Deploy backend (NestJS). Same as frontend: files directly in jwell_b2b_backend (no backend-out subfolder)
             BACKEND_DIR="/var/www/html/jwell_b2b/jwell_b2b_backend"
+            TMP_B="/tmp/jwell_b2b/jwell_b2b_backend"
+            if [ -d "$BACKEND_DIR" ]; then
+              sudo mkdir -p /var/www/html/jwell_b2b_backups
+              sudo cp -r $BACKEND_DIR /var/www/html/jwell_b2b_backups/jwell_b2b_backend_$(date +%Y%m%d_%H%M%S)
+              sudo rm -rf $BACKEND_DIR
+              echo "✅ Backend backup created"
+            fi
             sudo mkdir -p $BACKEND_DIR
-            sudo cp -r /tmp/jwell_b2b/jwell_b2b_backend/* $BACKEND_DIR/
+            if [ -d "$TMP_B/backend-out" ]; then
+              sudo cp -r "$TMP_B/backend-out/." $BACKEND_DIR/
+            else
+              sudo cp -r "$TMP_B/." $BACKEND_DIR/
+            fi
+            sudo chown -R www-data:www-data $BACKEND_DIR
+            sudo chmod -R 755 $BACKEND_DIR
             cd $BACKEND_DIR
             sudo npm install --omit=dev
             sudo npx prisma generate
