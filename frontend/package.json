@@ -7,7 +7,6 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "start:prod": "node dist/main.js",
         "lint": "next lint",
         "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\""
     },
