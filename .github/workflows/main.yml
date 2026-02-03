@@ -17,14 +17,16 @@ jobs:
       - name: 🚚 Checkout
         uses: actions/checkout@v4
 
-      # Use Node 20 LTS for stability
       - name: 🔧 Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
 
-      # ---------- FRONTEND BUILD ----------
+      # ---------- FRONTEND ----------
       - name: 📦 Install & build frontend (standalone)
         working-directory: frontend
         run: |
@@ -43,7 +45,7 @@ jobs:
             package.json \
             package-lock.json
 
-      # ---------- BACKEND BUILD ----------
+      # ---------- BACKEND ----------
       - name: 📦 Install & build backend
         working-directory: backend
         run: |
@@ -60,8 +62,7 @@ jobs:
             dist \
             prisma \
             package.json \
-            package-lock.json \
-            prisma.config.ts || true
+            package-lock.json
 
       - name: ⬆️ Upload artifacts
         uses: actions/upload-artifact@v4
@@ -82,7 +83,6 @@ jobs:
           name: deploy-bundles
           path: artifacts
 
-      # Upload tarballs (tar avoids ".next hidden dir" problems completely)
       - name: 📤 Upload bundles to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -109,53 +109,43 @@ jobs:
 
             sudo mkdir -p "$FRONT_DIR" "$BACK_DIR" "$BKP_DIR"
 
-            # ---------------- BACKUP ----------------
+            # Backups
             if [ -d "$FRONT_DIR/.next" ] || [ -f "$FRONT_DIR/package.json" ]; then
               sudo tar -czf "$BKP_DIR/frontend_$TS.tgz" -C "$APP_ROOT" frontend || true
-              echo "✅ Frontend backup: $BKP_DIR/frontend_$TS.tgz"
             fi
-
             if [ -d "$BACK_DIR/dist" ] || [ -f "$BACK_DIR/package.json" ]; then
               sudo tar -czf "$BKP_DIR/backend_$TS.tgz" -C "$APP_ROOT" backend || true
-              echo "✅ Backend backup: $BKP_DIR/backend_$TS.tgz"
             fi
 
-            # ---------------- DEPLOY FRONTEND ----------------
+            # Deploy frontend
             sudo rm -rf "$FRONT_DIR"/*
             sudo tar -xzf /tmp/jwell_deploy/artifacts/frontend.tgz -C "$FRONT_DIR"
 
-            # ---------------- DEPLOY BACKEND ----------------
+            # Deploy backend
             sudo rm -rf "$BACK_DIR"/*
             sudo tar -xzf /tmp/jwell_deploy/artifacts/backend.tgz -C "$BACK_DIR"
 
-            # ---------------- INSTALL PROD DEPS (backend only) ----------------
-            # Frontend standalone includes its own minimal node_modules inside .next/standalone
+            # Backend prod deps + prisma
             cd "$BACK_DIR"
             sudo npm ci --omit=dev
             sudo npx prisma generate
             sudo npx prisma migrate deploy 2>/dev/null || true
 
-            # ---------------- PM2 START/RESTART ----------------
-            # Frontend standalone entry
-            FRONT_ENTRY="$FRONT_DIR/.next/standalone/server.js"
-            # Ensure Next can find static assets
-            # Next standalone expects .next/static and public relative to project root; we deployed them.
-
+            # PM2 restart/start
             if ! command -v pm2 >/dev/null 2>&1; then
-              echo "❌ pm2 not found on server. Install pm2 first."
+              echo "❌ pm2 not installed on server"
               exit 1
             fi
 
-            # Restart or start frontend
+            FRONT_ENTRY="$FRONT_DIR/.next/standalone/server.js"
+
             pm2 describe jwell_frontend >/dev/null 2>&1 \
               && pm2 restart jwell_frontend \
               || pm2 start node --name jwell_frontend -- "$FRONT_ENTRY"
 
-            # Restart or start backend
             pm2 describe jwell_backend >/dev/null 2>&1 \
               && pm2 restart jwell_backend \
               || pm2 start "$BACK_DIR/dist/main.js" --name jwell_backend
 
             pm2 save
-
-            echo "✅ Deploy complete: frontend + backend restarted"
+            echo "✅ Deploy complete"
