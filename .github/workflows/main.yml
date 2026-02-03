@@ -11,6 +11,9 @@ jobs:
   build:
     name: 🏗 Build
     runs-on: ubuntu-latest
+    env:
+      CI: true
+      STATIC_EXPORT: '1'
     steps:
     - name: 🚚 Get latest code
       uses: actions/checkout@v4
@@ -22,11 +25,17 @@ jobs:
 
     - name: 📦 Install & build frontend
       working-directory: frontend
-      env:
-        STATIC_EXPORT: '1'
       run: |
         npm install
         npm run build
+
+    - name: 📋 Verify frontend static export
+      run: |
+        if [ ! -d frontend/out ] || [ -z "$(ls -A frontend/out 2>/dev/null)" ]; then
+          echo "::error::frontend/out is missing or empty. Next.js static export (output: export) may not be enabled for CI."
+          exit 1
+        fi
+        echo "Frontend static export found: $(ls frontend/out | head -5)"
 
     - name: 📦 Install & build backend
       working-directory: backend
@@ -39,7 +48,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: frontend-site
-        path: frontend/out/
+        path: frontend/out
 
     - name: 📦 Archive backend artifacts
       uses: actions/upload-artifact@v4
