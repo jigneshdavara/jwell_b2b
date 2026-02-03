@@ -47,6 +47,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-app
+          include-hidden-files: true
           path: |
             frontend/.next
             frontend/package.json
@@ -121,7 +122,12 @@ jobs:
               echo "✅ Frontend backup created"
             fi
             sudo mkdir -p /var/www/html/jwell_b2b/jwell_b2b_frontend
-            sudo mv /tmp/jwell_b2b/jwell_b2b_frontend/* /var/www/html/jwell_b2b/jwell_b2b_frontend/
+            # Use /. so .next and other hidden files are copied; * does not match dotfiles
+            sudo cp -r /tmp/jwell_b2b/jwell_b2b_frontend/. /var/www/html/jwell_b2b/jwell_b2b_frontend/
+            # Restore .next (SCP sends it as next-build because it skips hidden dirs)
+            if [ -d /var/www/html/jwell_b2b/jwell_b2b_frontend/next-build ]; then
+              sudo mv /var/www/html/jwell_b2b/jwell_b2b_frontend/next-build /var/www/html/jwell_b2b/jwell_b2b_frontend/.next
+            fi
             sudo chown -R www-data:www-data /var/www/html/jwell_b2b/jwell_b2b_frontend
             sudo chmod -R 755 /var/www/html/jwell_b2b/jwell_b2b_frontend
 
