@@ -4,10 +4,17 @@ on:
   push:
     branches:
       - nestjs_backend
+
   workflow_dispatch:
+    inputs:
+      run_seed:
+        description: "Run Prisma seed after migrate? (true/false)"
+        required: false
+        default: "false"
 
 jobs:
   build:
+    name: 🏗 Build
     runs-on: ubuntu-latest
 
     steps:
@@ -52,10 +59,7 @@ jobs:
             FRONT_FILES+=("public")
           fi
 
-          tar -czf artifacts/frontend.tgz \
-            -C frontend \
-            "${FRONT_FILES[@]}"
-
+          tar -czf artifacts/frontend.tgz -C frontend "${FRONT_FILES[@]}"
           ls -lah artifacts/frontend.tgz
 
       # ---------- BACKEND ----------
@@ -85,6 +89,7 @@ jobs:
           path: artifacts/*.tgz
 
   deploy:
+    name: 🚀 Deploy
     needs: build
     runs-on: ubuntu-latest
 
@@ -157,13 +162,14 @@ jobs:
               chmod 600 "$BACK/.env"
             fi
 
+            echo "=== Install backend prod deps ==="
             cd "$BACK"
             npm ci --omit=dev
             npx prisma generate
 
             echo "=== Prisma migrate deploy (loads $BACK/.env) ==="
             if [ ! -f "$BACK/.env" ]; then
-              echo "❌ ERROR: $BACK/.env not found. Create it on the server first."
+              echo "❌ ERROR: $BACK/.env not found. Create it ONCE on the server."
               exit 1
             fi
 
@@ -172,6 +178,15 @@ jobs:
             set +a
 
             npx prisma migrate deploy
+
+            echo "=== Optional seed (manual only) ==="
+            RUN_SEED="${{ github.event.inputs.run_seed }}"
+            if [ "$RUN_SEED" = "true" ]; then
+              echo "🌱 Running prisma seed..."
+              npx prisma db seed
+            else
+              echo "⏭ Skipping seed"
+            fi
 
             echo "=== PM2 start/restart ==="
             command -v pm2 >/dev/null 2>&1 || (echo "❌ pm2 not installed" && exit 1)
