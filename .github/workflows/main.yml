@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: ✅ Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: ✅ Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -24,22 +24,22 @@ jobs:
             backend/package-lock.json
 
       # ---------- FRONTEND ----------
-      - name: Build frontend (standalone)
+      - name: 🏗 Build frontend (standalone)
         working-directory: frontend
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           npm ci
           npm run build
           test -f .next/standalone/server.js
           test -d .next/static
 
-      - name: Pack frontend artifact
+      - name: 📦 Pack frontend artifact
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts
 
-          # include public only if it exists
           FRONT_FILES=(
             ".next/standalone"
             ".next/static"
@@ -47,6 +47,7 @@ jobs:
             "package-lock.json"
           )
 
+          # include public only if it exists
           if [ -d "frontend/public" ]; then
             FRONT_FILES+=("public")
           fi
@@ -58,24 +59,26 @@ jobs:
           ls -lah artifacts/frontend.tgz
 
       # ---------- BACKEND ----------
-      - name: Build backend
+      - name: 🏗 Build backend
         working-directory: backend
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           npm ci
           npx prisma generate
           npm run build
 
-      - name: Pack backend artifact
+      - name: 📦 Pack backend artifact
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           mkdir -p artifacts
           tar -czf artifacts/backend.tgz \
             -C backend \
             dist prisma prisma.config.ts package.json package-lock.json
           ls -lah artifacts/backend.tgz
 
-      - name: Upload artifacts
+      - name: ⬆️ Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: deploy-bundles
@@ -86,58 +89,110 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download artifacts
+      - name: ⬇️ Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: deploy-bundles
           path: artifacts
 
-      - name: Upload to server
+      - name: 📤 Upload bundles to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           source: "artifacts/*.tgz"
           target: "/tmp/jwell_deploy"
 
-      - name: Deploy & migrate
+      - name: 🚀 Deploy + Prisma migrate + PM2 restart (preserve .env)
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
-            set -e
-
-            export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+            set -euo pipefail
 
             APP="/var/www/html/jwell_b2b"
             FRONT="$APP/frontend"
             BACK="$APP/backend"
+            BKP="$APP/backups"
+            TS="$(date +%Y%m%d_%H%M%S)"
 
-            mkdir -p "$FRONT" "$BACK"
+            mkdir -p "$FRONT" "$BACK" "$BKP"
+
+            echo "=== Backup current deployments ==="
+            if [ -d "$FRONT" ] && [ "$(ls -A "$FRONT" 2>/dev/null || true)" != "" ]; then
+              tar -czf "$BKP/frontend_$TS.tgz" -C "$APP" frontend || true
+              echo "✅ Frontend backup: $BKP/frontend_$TS.tgz"
+            fi
+            if [ -d "$BACK" ] && [ "$(ls -A "$BACK" 2>/dev/null || true)" != "" ]; then
+              tar -czf "$BKP/backend_$TS.tgz" -C "$APP" backend || true
+              echo "✅ Backend backup: $BKP/backend_$TS.tgz"
+            fi
 
             echo "=== Deploy frontend ==="
             rm -rf "$FRONT"/*
             tar -xzf /tmp/jwell_deploy/artifacts/frontend.tgz -C "$FRONT"
 
-            # Fix Next standalone static path
+            echo "=== Fix Next standalone static path ==="
             mkdir -p "$FRONT/.next/standalone/.next"
             rm -rf "$FRONT/.next/standalone/.next/static"
             cp -R "$FRONT/.next/static" "$FRONT/.next/standalone/.next/static"
 
-            echo "=== Deploy backend ==="
+            echo "=== Deploy backend (preserve .env) ==="
+            # preserve backend .env (must already exist on server)
+            if [ -f "$BACK/.env" ]; then
+              cp "$BACK/.env" /tmp/jwell_backend.env
+            fi
+
             rm -rf "$BACK"/*
             tar -xzf /tmp/jwell_deploy/artifacts/backend.tgz -C "$BACK"
+
+            # restore backend .env
+            if [ -f /tmp/jwell_backend.env ]; then
+              mv /tmp/jwell_backend.env "$BACK/.env"
+              chmod 600 "$BACK/.env"
+            fi
 
             cd "$BACK"
             npm ci --omit=dev
             npx prisma generate
-            DATABASE_URL="$DATABASE_URL" npx prisma migrate deploy
 
-            pm2 restart jwell_backend || pm2 start dist/src/main.js --name jwell_backend
-            pm2 restart jwell_frontend || pm2 start node --name jwell_frontend -- "$FRONT/.next/standalone/server.js"
+            echo "=== Prisma migrate deploy (loads $BACK/.env) ==="
+            if [ ! -f "$BACK/.env" ]; then
+              echo "❌ ERROR: $BACK/.env not found. Create it on the server first."
+              exit 1
+            fi
+
+            set -a
+            source "$BACK/.env"
+            set +a
+
+            npx prisma migrate deploy
+
+            echo "=== PM2 start/restart ==="
+            command -v pm2 >/dev/null 2>&1 || (echo "❌ pm2 not installed" && exit 1)
+
+            # Frontend
+            FRONT_ENTRY="$FRONT/.next/standalone/server.js"
+            if pm2 describe jwell_frontend >/dev/null 2>&1; then
+              pm2 restart jwell_frontend --update-env
+            else
+              cd "$FRONT"
+              PORT=3000 pm2 start node --name jwell_frontend -- "$FRONT_ENTRY"
+            fi
+
+            # Backend
+            if pm2 describe jwell_backend >/dev/null 2>&1; then
+              pm2 restart jwell_backend --update-env
+            else
+              cd "$BACK"
+              PORT=4000 pm2 start dist/src/main.js --name jwell_backend
+            fi
+
             pm2 save
 
             echo "=== Health checks ==="
