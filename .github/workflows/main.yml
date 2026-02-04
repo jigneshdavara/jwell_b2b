@@ -1,4 +1,4 @@
-name: 🚀 Build & Deploy (Next + Nest)
+name: 🚀 Build & Deploy (Next + Nest + Prisma)
 
 on:
   push:
@@ -8,32 +8,25 @@ on:
 
 jobs:
   build:
-    name: 🏗 Build
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🚚 Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 🔧 Setup Node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: |
-            frontend/package-lock.json
-            backend/package-lock.json
+          node-version: 22
+          cache: npm
 
       # ---------- FRONTEND ----------
-      - name: 📦 Build frontend (Next standalone)
+      - name: Build frontend
         working-directory: frontend
         run: |
           npm ci
           npm run build
-          test -f .next/standalone/server.js
-          test -d .next/static
 
-      - name: 📦 Pack frontend artifact
+      - name: Pack frontend
         run: |
           mkdir -p artifacts
           tar -czf artifacts/frontend.tgz \
@@ -41,107 +34,83 @@ jobs:
             .next/standalone \
             .next/static \
             public \
-            package.json \
-            package-lock.json \
-            next.config.* || true
+            package.json
 
       # ---------- BACKEND ----------
-      - name: 📦 Build backend
+      - name: Build backend
         working-directory: backend
         run: |
           npm ci
           npx prisma generate
           npm run build
 
-      - name: 📦 Pack backend artifact
+      - name: Pack backend
         run: |
-          mkdir -p artifacts
           tar -czf artifacts/backend.tgz \
             -C backend \
-            dist \
-            prisma \
-            prisma.config.ts \
-            package.json \
-            package-lock.json
+            dist prisma prisma.config.ts package.json package-lock.json
 
-      - name: ⬆️ Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: deploy-bundles
           path: artifacts/*.tgz
 
   deploy:
-    name: 🚀 Deploy to VPS
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-      - name: ⬇️ Download artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: deploy-bundles
           path: artifacts
 
-      - name: 📤 Upload bundles (SCP)
+      - name: Upload bundles
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          port: 22
-          source: "artifacts/frontend.tgz,artifacts/backend.tgz"
+          source: "artifacts/*.tgz"
           target: "/tmp/jwell_deploy"
 
-      - name: 🚀 Deploy & restart (PM2 + Prisma)
+      - name: Deploy & migrate
         uses: appleboy/ssh-action@v0.1.7
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          port: 22
+          envs: DATABASE_URL
           script: |
             set -e
 
-            APP=/var/www/html/jwell_b2b
-            FRONT=$APP/frontend
-            BACK=$APP/backend
-            TS=$(date +%Y%m%d_%H%M%S)
+            export DATABASE_URL="${{ secrets.DATABASE_URL }}"
 
-            mkdir -p $APP/backups
+            APP="/var/www/html/jwell_b2b"
+            FRONT="$APP/frontend"
+            BACK="$APP/backend"
 
-            # Backup
-            [ -d "$FRONT" ] && tar -czf $APP/backups/frontend_$TS.tgz -C $APP frontend || true
-            [ -d "$BACK" ] && tar -czf $APP/backups/backend_$TS.tgz -C $APP backend || true
+            mkdir -p $FRONT $BACK
 
-            # Deploy frontend
-            rm -rf $FRONT
-            mkdir -p $FRONT
-            tar -xzf /tmp/jwell_deploy/artifacts/frontend.tgz -C $FRONT
+            echo "Deploy frontend"
+            rm -rf $FRONT/*
+            tar -xzf /tmp/jwell_deploy/frontend.tgz -C $FRONT
 
-            # Fix Next standalone static
             mkdir -p $FRONT/.next/standalone/.next
-            rm -rf $FRONT/.next/standalone/.next/static
             cp -R $FRONT/.next/static $FRONT/.next/standalone/.next/static
 
-            # Deploy backend
-            rm -rf $BACK
-            mkdir -p $BACK
-            tar -xzf /tmp/jwell_deploy/artifacts/backend.tgz -C $BACK
+            echo "Deploy backend"
+            rm -rf $BACK/*
+            tar -xzf /tmp/jwell_deploy/backend.tgz -C $BACK
 
             cd $BACK
             npm ci --omit=dev
             npx prisma generate
-            npx prisma migrate deploy
 
-            # PM2
-            pm2 delete jwell_frontend || true
-            pm2 delete jwell_backend || true
+            echo "Run Prisma migrate"
+            DATABASE_URL="$DATABASE_URL" npx prisma migrate deploy
 
-            PORT=3000 pm2 start node --name jwell_frontend -- $FRONT/.next/standalone/server.js
-            PORT=4000 pm2 start dist/src/main.js --name jwell_backend
+            pm2 restart jwell_backend || pm2 start dist/src/main.js --name jwell_backend
+            pm2 restart jwell_frontend || pm2 start node --name jwell_frontend -- $FRONT/.next/standalone/server.js
 
             pm2 save
-
-            echo "✅ Deployment successful"
