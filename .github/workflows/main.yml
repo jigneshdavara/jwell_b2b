@@ -34,6 +34,7 @@ jobs:
           set -euo pipefail
           npm ci
           npm run build
+
           test -f .next/standalone/server.js
           test -d .next/static
           echo "✅ Next standalone build OK"
@@ -44,7 +45,7 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts
 
-          # IMPORTANT: include BOTH standalone + static
+          # Pack standalone + static + public + package manifests
           tar -czf artifacts/frontend.tgz \
             -C frontend \
             .next/standalone \
@@ -63,8 +64,14 @@ jobs:
         run: |
           set -euo pipefail
           npm ci
+
+          # Prisma client generation (no DB needed)
           npx prisma generate
+
+          echo "=== TypeScript check ==="
           npx tsc -p tsconfig.build.json --pretty false
+
+          echo "=== Nest build ==="
           npm run build
 
       - name: 📦 Pack backend artifact
@@ -72,13 +79,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts
+
+          # Include prisma folder + migrations + dist
           tar -czf artifacts/backend.tgz \
             -C backend \
             dist \
             prisma \
-            prisma.config.ts \
             package.json \
             package-lock.json
+
           ls -lah artifacts/backend.tgz
 
       - name: ⬆️ Upload artifacts
@@ -92,6 +101,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/nestjs_backend'
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: ⬇️ Download artifacts
@@ -110,8 +121,10 @@ jobs:
           source: "artifacts/frontend.tgz,artifacts/backend.tgz"
           target: "/tmp/jwell_deploy"
 
-      - name: 🚀 Deploy & restart services (PM2)
+      - name: 🚀 Deploy & restart services (PM2 + Prisma migrate)
         uses: appleboy/ssh-action@v0.1.7
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -126,24 +139,26 @@ jobs:
             BKP_DIR="$APP_ROOT/backups"
             TS="$(date +%Y%m%d_%H%M%S)"
 
-            sudo mkdir -p "$FRONT_DIR" "$BACK_DIR" "$BKP_DIR"
+            mkdir -p "$FRONT_DIR" "$BACK_DIR" "$BKP_DIR"
 
             echo "=== Backup old deployments ==="
             if [ -d "$FRONT_DIR/.next" ] || [ -f "$FRONT_DIR/package.json" ]; then
-              sudo tar -czf "$BKP_DIR/frontend_$TS.tgz" -C "$APP_ROOT" frontend || true
+              tar -czf "$BKP_DIR/frontend_$TS.tgz" -C "$APP_ROOT" frontend || true
               echo "✅ Frontend backup: $BKP_DIR/frontend_$TS.tgz"
             fi
 
             if [ -d "$BACK_DIR/dist" ] || [ -f "$BACK_DIR/package.json" ]; then
-              sudo tar -czf "$BKP_DIR/backend_$TS.tgz" -C "$APP_ROOT" backend || true
+              tar -czf "$BKP_DIR/backend_$TS.tgz" -C "$APP_ROOT" backend || true
               echo "✅ Backend backup: $BKP_DIR/backend_$TS.tgz"
             fi
 
             echo "=== Deploy frontend ==="
-            sudo rm -rf "$FRONT_DIR"/*
-            sudo tar -xzf /tmp/jwell_deploy/artifacts/frontend.tgz -C "$FRONT_DIR"
+            rm -rf "$FRONT_DIR"/*
+            tar -xzf /tmp/jwell_deploy/artifacts/frontend.tgz -C "$FRONT_DIR"
 
             echo "=== Fix Next standalone static path ==="
+            # Next standalone expects ".next/static" under the standalone runtime as:
+            # .next/standalone/.next/static
             cd "$FRONT_DIR"
             if [ -f ".next/standalone/server.js" ]; then
               mkdir -p .next/standalone/.next
@@ -152,34 +167,47 @@ jobs:
             fi
 
             echo "=== Deploy backend ==="
-            sudo rm -rf "$BACK_DIR"/*
-            sudo tar -xzf /tmp/jwell_deploy/artifacts/backend.tgz -C "$BACK_DIR"
+            rm -rf "$BACK_DIR"/*
+            tar -xzf /tmp/jwell_deploy/artifacts/backend.tgz -C "$BACK_DIR"
 
-            echo "=== Install backend prod deps + prisma ==="
+            echo "=== Install backend prod deps ==="
             cd "$BACK_DIR"
-            sudo npm ci --omit=dev
-            sudo npx prisma generate
+            npm ci --omit=dev
 
-            # prisma migrate deploy (Prisma v7 needs prisma.config.ts)
-            sudo npx prisma migrate deploy || true
+            echo "=== Prisma generate + migrate deploy ==="
+            # IMPORTANT: Prisma needs DATABASE_URL in environment.
+            # appleboy passes env vars to remote, so export it explicitly.
+            export DATABASE_URL="${DATABASE_URL}"
+
+            # sanity check (do NOT print full URL in logs)
+            node -e "console.log('DATABASE_URL set:', !!process.env.DATABASE_URL)"
+
+            npx prisma generate
+            npx prisma migrate deploy
 
             echo "=== PM2 start/restart ==="
             command -v pm2 >/dev/null 2>&1 || (echo "❌ pm2 not installed" && exit 1)
 
             FRONT_ENTRY="$FRONT_DIR/.next/standalone/server.js"
 
-            pm2 describe jwell_frontend >/dev/null 2>&1 \
-              && pm2 restart jwell_frontend --update-env \
-              || (cd "$FRONT_DIR" && PORT=3000 pm2 start node --name jwell_frontend -- "$FRONT_ENTRY")
+            if pm2 describe jwell_frontend >/dev/null 2>&1; then
+              pm2 restart jwell_frontend --update-env
+            else
+              cd "$FRONT_DIR"
+              PORT=3000 pm2 start node --name jwell_frontend -- "$FRONT_ENTRY"
+            fi
 
-            pm2 describe jwell_backend >/dev/null 2>&1 \
-              && pm2 restart jwell_backend --update-env \
-              || (cd "$BACK_DIR" && PORT=4000 pm2 start dist/src/main.js --name jwell_backend)
+            if pm2 describe jwell_backend >/dev/null 2>&1; then
+              pm2 restart jwell_backend --update-env
+            else
+              cd "$BACK_DIR"
+              PORT=4000 pm2 start dist/src/main.js --name jwell_backend
+            fi
 
             pm2 save
 
             echo "=== Local health checks ==="
-            curl -sS -I http://127.0.0.1:3000/ >/dev/null && echo "✅ Next up (3000)" || echo "❌ Next not responding"
-            curl -sS -I http://127.0.0.1:4000/api >/dev/null && echo "✅ Nest up (4000)" || echo "❌ Nest not responding"
+            curl -sS -I http://127.0.0.1:3000/ >/dev/null && echo "✅ Next up (3000)" || (echo "❌ Next not responding" && exit 1)
+            curl -sS -I http://127.0.0.1:4000/api >/dev/null && echo "✅ Nest up (4000)" || (echo "❌ Nest not responding" && exit 1)
 
             echo "✅ Deployment completed"
