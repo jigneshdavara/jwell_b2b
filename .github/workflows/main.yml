@@ -24,37 +24,56 @@ jobs:
             backend/package-lock.json
 
       # ---------- FRONTEND ----------
-      - name: Build frontend
+      - name: Build frontend (standalone)
         working-directory: frontend
         run: |
+          set -e
           npm ci
           npm run build
           test -f .next/standalone/server.js
+          test -d .next/static
 
-      - name: Pack frontend
+      - name: Pack frontend artifact
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p artifacts
+
+          # include public only if it exists
+          FRONT_FILES=(
+            ".next/standalone"
+            ".next/static"
+            "package.json"
+            "package-lock.json"
+          )
+
+          if [ -d "frontend/public" ]; then
+            FRONT_FILES+=("public")
+          fi
+
           tar -czf artifacts/frontend.tgz \
             -C frontend \
-            .next/standalone \
-            .next/static \
-            public \
-            package.json \
-            package-lock.json
+            "${FRONT_FILES[@]}"
+
+          ls -lah artifacts/frontend.tgz
 
       # ---------- BACKEND ----------
       - name: Build backend
         working-directory: backend
         run: |
+          set -e
           npm ci
           npx prisma generate
           npm run build
 
-      - name: Pack backend
+      - name: Pack backend artifact
         run: |
+          set -e
+          mkdir -p artifacts
           tar -czf artifacts/backend.tgz \
             -C backend \
             dist prisma prisma.config.ts package.json package-lock.json
+          ls -lah artifacts/backend.tgz
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -88,7 +107,6 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: DATABASE_URL
           script: |
             set -e
 
@@ -98,25 +116,32 @@ jobs:
             FRONT="$APP/frontend"
             BACK="$APP/backend"
 
-            mkdir -p $FRONT $BACK
+            mkdir -p "$FRONT" "$BACK"
 
-            echo "Deploy frontend"
-            rm -rf $FRONT/*
-            tar -xzf /tmp/jwell_deploy/frontend.tgz -C $FRONT
+            echo "=== Deploy frontend ==="
+            rm -rf "$FRONT"/*
+            tar -xzf /tmp/jwell_deploy/frontend.tgz -C "$FRONT"
 
-            mkdir -p $FRONT/.next/standalone/.next
-            cp -R $FRONT/.next/static $FRONT/.next/standalone/.next/static
+            # Fix Next standalone static path
+            mkdir -p "$FRONT/.next/standalone/.next"
+            rm -rf "$FRONT/.next/standalone/.next/static"
+            cp -R "$FRONT/.next/static" "$FRONT/.next/standalone/.next/static"
 
-            echo "Deploy backend"
-            rm -rf $BACK/*
-            tar -xzf /tmp/jwell_deploy/backend.tgz -C $BACK
+            echo "=== Deploy backend ==="
+            rm -rf "$BACK"/*
+            tar -xzf /tmp/jwell_deploy/backend.tgz -C "$BACK"
 
-            cd $BACK
+            cd "$BACK"
             npm ci --omit=dev
             npx prisma generate
             DATABASE_URL="$DATABASE_URL" npx prisma migrate deploy
 
             pm2 restart jwell_backend || pm2 start dist/src/main.js --name jwell_backend
-            pm2 restart jwell_frontend || pm2 start node --name jwell_frontend -- $FRONT/.next/standalone/server.js
-
+            pm2 restart jwell_frontend || pm2 start node --name jwell_frontend -- "$FRONT/.next/standalone/server.js"
             pm2 save
+
+            echo "=== Health checks ==="
+            curl -sS -I http://127.0.0.1:3000/ >/dev/null && echo "✅ Next OK" || echo "❌ Next FAIL"
+            curl -sS -I http://127.0.0.1:4000/api >/dev/null && echo "✅ Nest OK" || echo "❌ Nest FAIL"
+
+            echo "✅ Deployment completed"
