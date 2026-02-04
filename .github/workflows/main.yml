@@ -11,13 +11,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
 
       # ---------- FRONTEND ----------
       - name: Build frontend
@@ -25,6 +29,7 @@ jobs:
         run: |
           npm ci
           npm run build
+          test -f .next/standalone/server.js
 
       - name: Pack frontend
         run: |
@@ -34,7 +39,8 @@ jobs:
             .next/standalone \
             .next/static \
             public \
-            package.json
+            package.json \
+            package-lock.json
 
       # ---------- BACKEND ----------
       - name: Build backend
@@ -50,7 +56,8 @@ jobs:
             -C backend \
             dist prisma prisma.config.ts package.json package-lock.json
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: deploy-bundles
           path: artifacts/*.tgz
@@ -60,12 +67,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
           name: deploy-bundles
           path: artifacts
 
-      - name: Upload bundles
+      - name: Upload to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -106,8 +114,6 @@ jobs:
             cd $BACK
             npm ci --omit=dev
             npx prisma generate
-
-            echo "Run Prisma migrate"
             DATABASE_URL="$DATABASE_URL" npx prisma migrate deploy
 
             pm2 restart jwell_backend || pm2 start dist/src/main.js --name jwell_backend
