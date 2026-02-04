@@ -120,7 +120,7 @@ jobs:
 
             echo "=== Deploy frontend ==="
             rm -rf "$FRONT"/*
-            tar -xzf /tmp/jwell_deploy/frontend.tgz -C "$FRONT"
+            tar -xzf /tmp/jwell_deploy/artifacts/frontend.tgz -C "$FRONT"
 
             # Fix Next standalone static path
             mkdir -p "$FRONT/.next/standalone/.next"
@@ -129,7 +129,7 @@ jobs:
 
             echo "=== Deploy backend ==="
             rm -rf "$BACK"/*
-            tar -xzf /tmp/jwell_deploy/backend.tgz -C "$BACK"
+            tar -xzf /tmp/jwell_deploy/artifacts/backend.tgz -C "$BACK"
 
             cd "$BACK"
             npm ci --omit=dev
