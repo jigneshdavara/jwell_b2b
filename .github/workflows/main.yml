@@ -72,7 +72,7 @@ jobs:
           npx prisma generate
           npm run build
           # ensure seed compiled exists (after you fix tsconfig.build.json)
-          test -f dist/src/seeders/seed.js || (echo "❌ dist/src/seeders/seed.js missing. Fix tsconfig.build.json include." && exit 1)
+          test -f dist/src/seeders/seed.js || (echo "❌  dist/src/seeders/seed.js missing. Fix tsconfig.build.json include." && exit 1)
 
       - name: 📦 Pack backend artifact
         shell: bash
