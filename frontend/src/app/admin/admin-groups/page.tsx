@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
@@ -67,6 +67,7 @@ export default function AdminAdminGroupsPage() {
     });
     const [isClientSidePagination, setIsClientSidePagination] = useState(false);
     const [allAssignAdmins, setAllAssignAdmins] = useState<Admin[]>([]);
+    const assignAllCheckboxRef = useRef<HTMLInputElement>(null);
 
     const featureOptions = [
         { value: 'dashboard.view', label: 'Dashboard access' },
@@ -498,14 +499,20 @@ export default function AdminAdminGroupsPage() {
     // Use assignAdmins directly (no client-side filtering when paginated)
     const filteredAssignAdmins = assignAdmins;
 
-    const visibleSelectedCount = useMemo(() => {
-        return filteredAssignAdmins.filter((a) => assignSelectedIds.includes(a.id)).length;
-    }, [filteredAssignAdmins, assignSelectedIds]);
+    const selectedCount = assignSelectedIds.length;
+    const totalCount = assignAdminsMeta.total;
 
-    const allVisibleSelected = useMemo(() => {
-        if (filteredAssignAdmins.length === 0) return false;
-        return filteredAssignAdmins.every((a) => assignSelectedIds.includes(a.id));
-    }, [filteredAssignAdmins, assignSelectedIds]);
+    const assignAllSelected = useMemo(() => {
+        if (totalCount === 0) return false;
+        return selectedCount === totalCount;
+    }, [selectedCount, totalCount]);
+
+    useEffect(() => {
+        const el = assignAllCheckboxRef.current;
+        if (el) {
+            el.indeterminate = selectedCount > 0 && selectedCount < totalCount;
+        }
+    }, [selectedCount, totalCount]);
 
     const toggleAssignAdmin = (adminId: number) => {
         setAssignSelectedIds((prev) =>
@@ -515,22 +522,36 @@ export default function AdminAdminGroupsPage() {
         );
     };
 
-    const selectAllVisible = () => {
-        const visibleIds = filteredAssignAdmins.map((a) => a.id);
-        setAssignSelectedIds((prev) => {
-            const newIds = [...prev];
-            visibleIds.forEach((id) => {
-                if (!newIds.includes(id)) {
-                    newIds.push(id);
-                }
-            });
-            return newIds;
-        });
+    const selectAll = async () => {
+        if (!assigningGroup) return;
+        if (totalCount === 0) return;
+
+        if (isClientSidePagination && allAssignAdmins.length > 0) {
+            const allIds = allAssignAdmins.map((a) => a.id);
+            setAssignSelectedIds(allIds);
+            return;
+        }
+
+        setAssignLoading(true);
+        try {
+            const response = await adminService.getAssignAdmins(
+                assigningGroup.id,
+                assignSearchTerm || undefined,
+                1,
+                totalCount
+            );
+            const admins = response.data?.admins || [];
+            const allIds = admins.map((a: { id: number }) => a.id);
+            setAssignSelectedIds(allIds);
+        } catch (error) {
+            console.error('Failed to select all:', error);
+        } finally {
+            setAssignLoading(false);
+        }
     };
 
-    const deselectAllVisible = () => {
-        const visibleIds = filteredAssignAdmins.map((a) => a.id);
-        setAssignSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    const deselectAll = () => {
+        setAssignSelectedIds([]);
     };
 
     const handleAssignSearch = async () => {
@@ -1068,22 +1089,24 @@ export default function AdminAdminGroupsPage() {
                                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                     <button
                                         type="button"
-                                        onClick={selectAllVisible}
-                                        className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                        onClick={selectAll}
+                                        disabled={assignLoading || totalCount === 0}
+                                        className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Select all visible
+                                        Select all
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={deselectAllVisible}
-                                        className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                        onClick={deselectAll}
+                                        disabled={assignLoading || selectedCount === 0}
+                                        className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Deselect all visible
+                                        Deselect all
                                     </button>
                                 </div>
                                 <div className="text-xs sm:text-sm text-slate-600 text-center sm:text-left">
-                                    <span className="font-semibold">{visibleSelectedCount}</span> selected /{' '}
-                                    <span className="font-semibold">{filteredAssignAdmins.length}</span> visible
+                                    <span className="font-semibold">{selectedCount}</span> selected /{' '}
+                                    <span className="font-semibold">{totalCount}</span> total
                                 </div>
                             </div>
 
@@ -1106,18 +1129,19 @@ export default function AdminAdminGroupsPage() {
                                                 <tr>
                                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50">
                                                         <input
+                                                            ref={assignAllCheckboxRef}
                                                             type="checkbox"
-                                                            checked={allVisibleSelected}
+                                                            checked={assignAllSelected}
                                                             onChange={() => {
-                                                                if (allVisibleSelected) {
-                                                                    deselectAllVisible();
+                                                                if (assignAllSelected) {
+                                                                    deselectAll();
                                                                 } else {
-                                                                    selectAllVisible();
+                                                                    selectAll();
                                                                 }
                                                             }}
-                                                            disabled={assignPaginationLoading}
+                                                            disabled={assignPaginationLoading || assignLoading || totalCount === 0}
                                                             className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            aria-label="Select all visible admins"
+                                                            aria-label="Select all admins"
                                                         />
                                                     </th>
                                                     <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50">Name</th>

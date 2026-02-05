@@ -97,7 +97,9 @@ export const adminService = {
     });
   },
   async addKycMessage(id: number, message: string) {
-    return await apiClient.post(`/admin/users/${id}/kyc-messages`, { message });
+    return await apiClient.post(`/admin/users/${id}/kyc-messages`, { message }, {
+      headers: { 'X-Silent-Request': 'true' },
+    });
   },
   async updateKycDocumentStatus(id: number, docId: number, status: string, remarks?: string) {
     return await apiClient.patch(`/admin/users/${id}/kyc-documents/${docId}`, { status, remarks });

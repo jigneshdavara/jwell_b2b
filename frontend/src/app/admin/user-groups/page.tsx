@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Head } from '@/components/Head';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
@@ -66,6 +66,7 @@ export default function AdminUserGroupsIndex() {
         total: 0,
     });
     const [isClientSidePagination, setIsClientSidePagination] = useState(false);
+    const assignAllCheckboxRef = useRef<HTMLInputElement>(null);
 
     // React Hook Form setup
     const {
@@ -522,14 +523,20 @@ export default function AdminUserGroupsIndex() {
     // Use assignUsers directly (no client-side filtering when paginated)
     const filteredAssignUsers = assignUsers;
 
-    const visibleSelectedCount = useMemo(() => {
-        return filteredAssignUsers.filter((u) => assignSelectedIds.includes(u.id)).length;
-    }, [filteredAssignUsers, assignSelectedIds]);
+    const selectedCount = assignSelectedIds.length;
+    const totalCount = assignUsersMeta.total;
 
-    const allVisibleSelected = useMemo(() => {
-        if (filteredAssignUsers.length === 0) return false;
-        return filteredAssignUsers.every((u) => assignSelectedIds.includes(u.id));
-    }, [filteredAssignUsers, assignSelectedIds]);
+    const assignAllSelected = useMemo(() => {
+        if (totalCount === 0) return false;
+        return selectedCount === totalCount;
+    }, [selectedCount, totalCount]);
+
+    useEffect(() => {
+        const el = assignAllCheckboxRef.current;
+        if (el) {
+            el.indeterminate = selectedCount > 0 && selectedCount < totalCount;
+        }
+    }, [selectedCount, totalCount]);
 
     const toggleAssignUser = (userId: number) => {
         setAssignSelectedIds((prev) =>
@@ -539,22 +546,36 @@ export default function AdminUserGroupsIndex() {
         );
     };
 
-    const selectAllVisible = () => {
-        const visibleIds = filteredAssignUsers.map((u) => u.id);
-        setAssignSelectedIds((prev) => {
-            const newIds = [...prev];
-            visibleIds.forEach((id) => {
-                if (!newIds.includes(id)) {
-                    newIds.push(id);
-                }
-            });
-            return newIds;
-        });
+    const selectAll = async () => {
+        if (!assigningGroup) return;
+        if (totalCount === 0) return;
+
+        if (isClientSidePagination && allAssignUsers.length > 0) {
+            const allIds = allAssignUsers.map((u) => u.id);
+            setAssignSelectedIds(allIds);
+            return;
+        }
+
+        setAssignLoading(true);
+        try {
+            const response = await adminService.getAssignUsers(
+                assigningGroup.id,
+                assignSearchTerm || undefined,
+                1,
+                totalCount
+            );
+            const users = response.data?.users || [];
+            const allIds = users.map((u: { id: number }) => u.id);
+            setAssignSelectedIds(allIds);
+        } catch (error) {
+            console.error('Failed to select all:', error);
+        } finally {
+            setAssignLoading(false);
+        }
     };
 
-    const deselectAllVisible = () => {
-        const visibleIds = filteredAssignUsers.map((u) => u.id);
-        setAssignSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    const deselectAll = () => {
+        setAssignSelectedIds([]);
     };
 
     const handleAssignSearch = async () => {
@@ -1083,22 +1104,24 @@ export default function AdminUserGroupsIndex() {
                                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                     <button
                                         type="button"
-                                        onClick={selectAllVisible}
-                                        className="rounded-full border border-slate-300 px-2.5 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-xs"
+                                        onClick={selectAll}
+                                        disabled={assignLoading || totalCount === 0}
+                                        className="rounded-full border border-slate-300 px-2.5 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Select all visible
+                                        Select all
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={deselectAllVisible}
-                                        className="rounded-full border border-slate-300 px-2.5 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-xs"
+                                        onClick={deselectAll}
+                                        disabled={assignLoading || selectedCount === 0}
+                                        className="rounded-full border border-slate-300 px-2.5 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Deselect all visible
+                                        Deselect all
                                     </button>
                                 </div>
                                 <div className="text-xs sm:text-sm text-slate-600">
-                                    <span className="font-semibold">{visibleSelectedCount}</span> selected /{' '}
-                                    <span className="font-semibold">{filteredAssignUsers.length}</span> visible
+                                    <span className="font-semibold">{selectedCount}</span> selected /{' '}
+                                    <span className="font-semibold">{totalCount}</span> total
                                 </div>
                             </div>
 
@@ -1121,18 +1144,19 @@ export default function AdminUserGroupsIndex() {
                                                 <tr>
                                                     <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">
                                                         <input
+                                                            ref={assignAllCheckboxRef}
                                                             type="checkbox"
-                                                            checked={allVisibleSelected}
+                                                            checked={assignAllSelected}
                                                             onChange={() => {
-                                                                if (allVisibleSelected) {
-                                                                    deselectAllVisible();
+                                                                if (assignAllSelected) {
+                                                                    deselectAll();
                                                                 } else {
-                                                                    selectAllVisible();
+                                                                    selectAll();
                                                                 }
                                                             }}
-                                                            disabled={assignPaginationLoading}
+                                                            disabled={assignPaginationLoading || assignLoading || totalCount === 0}
                                                             className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            aria-label="Select all visible users"
+                                                            aria-label="Select all users"
                                                         />
                                                     </th>
                                                     <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Name</th>
