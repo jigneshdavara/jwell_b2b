@@ -461,207 +461,115 @@ export class CategoriesService {
         });
         if (!category) throw new NotFoundException('Category not found');
 
-        // Check if category is used as main category
-        const productsAsMainCategory = await this.prisma.products.count({
-            where: {
-                category_id: categoryId,
-            },
-        });
+        // Get category and all its subcategories (recursively)
+        const idsToDelete = await this.getCategoryAndDescendantIds(categoryId);
 
-        // Check if category is used as subcategory (in JSON array)
-        // Get all products and filter those with subcategory_ids containing this category
-        const allProducts = await this.prisma.products.findMany({
-            select: {
-                id: true,
-                subcategory_ids: true,
-            },
-        });
+        // Check if any of these categories have products (main or subcategory)
+        const { hasProducts, productCount } =
+            await this.checkCategoriesHaveProducts(idsToDelete);
 
-        // Filter products where this category ID is in the subcategory_ids array
-        const categoryIdNumber = Number(id);
-        const matchingSubcategoryProducts = allProducts.filter((product) => {
-            if (!product.subcategory_ids) return false;
-            const subcategoryIds = product.subcategory_ids as number[];
-            return (
-                Array.isArray(subcategoryIds) &&
-                subcategoryIds.includes(categoryIdNumber)
-            );
-        });
-
-        const totalProductsCount =
-            productsAsMainCategory + matchingSubcategoryProducts.length;
-
-        if (totalProductsCount > 0) {
-            const usageDescription =
-                productsAsMainCategory > 0 &&
-                matchingSubcategoryProducts.length > 0
-                    ? '(as main category and/or subcategory)'
-                    : productsAsMainCategory > 0
-                      ? '(as main category)'
-                      : '(as subcategory)';
+        if (hasProducts) {
             throw new BadRequestException(
-                `Cannot delete this category. It is currently assigned to ${totalProductsCount} product(s) ${usageDescription}. Please remove the category from all products first, then delete the category.`,
+                `Cannot delete this category. It or its subcategories are currently assigned to ${productCount} product(s). Please remove the category from all products first, then delete the category.`,
             );
         }
 
-        if (category.cover_image) {
-            this.deleteImage(category.cover_image);
-        }
-
-        await this.prisma.categories.delete({
-            where: { id: categoryId },
-        });
-        return { success: true, message: 'Category removed successfully' };
+        // Delete recursively: subcategories first, then parent
+        const deletedCount = await this.deleteCategoryRecursive(categoryId);
+        return {
+            success: true,
+            message:
+                deletedCount > 1
+                    ? `Category and ${deletedCount - 1} subcategor${deletedCount - 1 === 1 ? 'y' : 'ies'} removed successfully`
+                    : 'Category removed successfully',
+        };
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
+        const selectedSet = new Set(bigIntIds.map((id) => id.toString()));
 
-        // Check which categories are assigned to products as main category
-        const categoriesWithProducts = await this.prisma.products.findMany({
-            where: {
-                category_id: { in: bigIntIds },
-            },
-            select: {
-                category_id: true,
-            },
-            distinct: ['category_id'],
+        // Get category data to find "roots" (selected categories whose parent is not selected)
+        const categories = await this.prisma.categories.findMany({
+            where: { id: { in: bigIntIds } },
+            select: { id: true, parent_id: true },
         });
 
-        // Check if any categories are used as subcategories
-        // Get all products and filter those with subcategory_ids
-        const allProducts = await this.prisma.products.findMany({
-            select: {
-                id: true,
-                subcategory_ids: true,
-            },
-        });
-
-        // Find which category IDs from the delete list are in subcategory_ids
-        const categoryIdsAsNumbers = ids.map((id) => Number(id));
-        const categoriesUsedAsSubcategory = new Set<number>();
-
-        allProducts.forEach((product) => {
-            if (!product.subcategory_ids) return;
-            const subcategoryIds = product.subcategory_ids as number[];
-            if (Array.isArray(subcategoryIds)) {
-                subcategoryIds.forEach((subId) => {
-                    if (categoryIdsAsNumbers.includes(subId)) {
-                        categoriesUsedAsSubcategory.add(subId);
-                    }
-                });
-            }
-        });
-
-        // Combine categories used as main category and subcategory
-        const allUsedCategoryIds = new Set<bigint>();
-        categoriesWithProducts.forEach((p) => {
-            allUsedCategoryIds.add(p.category_id);
-        });
-        Array.from(categoriesUsedAsSubcategory).forEach((catId) => {
-            allUsedCategoryIds.add(BigInt(catId));
-        });
-
-        // Find IDs that can be deleted (not in conflicts)
-        const conflictingCategoryIds = Array.from(allUsedCategoryIds);
-        const deletableIds = bigIntIds.filter(
-            (id) => !conflictingCategoryIds.includes(id),
+        const roots = categories.filter(
+            (c) =>
+                !c.parent_id ||
+                !selectedSet.has(c.parent_id.toString()),
         );
 
-        // Delete only the items without conflicts (and delete their cover images)
-        let deletedCount = 0;
-        if (deletableIds.length > 0) {
-            // Delete cover images for deletable categories
-            const deletableCategories = await this.prisma.categories.findMany({
-                where: { id: { in: deletableIds } },
-                select: { cover_image: true },
-            });
+        const conflictingCategoryIds: bigint[] = [];
+        const rootsToDelete: bigint[] = [];
 
-            for (const category of deletableCategories) {
-                if (category.cover_image) {
-                    this.deleteImage(category.cover_image);
-                }
+        for (const root of roots) {
+            const subtreeIds = await this.getCategoryAndDescendantIds(root.id);
+            const { hasProducts } =
+                await this.checkCategoriesHaveProducts(subtreeIds);
+            if (hasProducts) {
+                conflictingCategoryIds.push(...subtreeIds);
+            } else {
+                rootsToDelete.push(root.id);
             }
-
-            const result = await this.prisma.categories.deleteMany({
-                where: { id: { in: deletableIds } },
-            });
-            deletedCount = result.count;
         }
 
-        // Build response message
-        if (conflictingCategoryIds.length === 0) {
-            // All items deleted successfully
+        // Deduplicate conflicting IDs
+        const conflictingSet = new Set(
+            conflictingCategoryIds.map((id) => id.toString()),
+        );
+        const uniqueConflictingIds = Array.from(conflictingSet).map((s) =>
+            BigInt(s),
+        );
+
+        let deletedCount = 0;
+        for (const rootId of rootsToDelete) {
+            const category = await this.prisma.categories.findUnique({
+                where: { id: rootId },
+            });
+            if (category) {
+                deletedCount += await this.deleteCategoryRecursive(rootId);
+            }
+        }
+
+        if (uniqueConflictingIds.length === 0) {
             return {
                 success: true,
                 message: `${deletedCount} categor${deletedCount === 1 ? 'y' : 'ies'} removed successfully`,
             };
         }
 
-        // Get detailed information for conflicting categories
         const categoryDetails = await Promise.all(
-            conflictingCategoryIds.map(async (categoryId) => {
+            uniqueConflictingIds.map(async (categoryId) => {
                 const categoryData = await this.prisma.categories.findUnique({
                     where: { id: categoryId },
                     select: { name: true },
                 });
-
-                // Count products as main category
-                const productsAsMainCategory = await this.prisma.products.count(
-                    {
-                        where: { category_id: categoryId },
-                    },
-                );
-
-                // Count products as subcategory
-                const categoryIdNumber = Number(categoryId);
-                const productsAsSubcategory = allProducts.filter((product) => {
-                    if (!product.subcategory_ids) return false;
-                    const subcategoryIds = product.subcategory_ids as number[];
-                    return (
-                        Array.isArray(subcategoryIds) &&
-                        subcategoryIds.includes(categoryIdNumber)
-                    );
-                }).length;
-
-                const totalProductsCount =
-                    productsAsMainCategory + productsAsSubcategory;
-
-                let usageDescription = '';
-                if (productsAsMainCategory > 0 && productsAsSubcategory > 0) {
-                    usageDescription = `(as main category and/or subcategory)`;
-                } else if (productsAsMainCategory > 0) {
-                    usageDescription = `(as main category)`;
-                } else {
-                    usageDescription = `(as subcategory)`;
-                }
-
+                const { productCount } =
+                    await this.checkCategoriesHaveProducts([categoryId]);
                 return {
                     id: categoryId,
                     name: categoryData?.name || 'Unknown',
-                    productsCount: totalProductsCount,
-                    usageDescription,
+                    productsCount: productCount,
                 };
             }),
         );
 
         const conflicts = categoryDetails.map(
             (detail) =>
-                `${detail.name} (assigned to ${detail.productsCount} product${detail.productsCount === 1 ? '' : 's'} ${detail.usageDescription})`,
+                `${detail.name} (assigned to ${detail.productsCount} product${detail.productsCount === 1 ? '' : 's'})`,
         );
 
         if (deletedCount > 0) {
-            // Partial success
             return {
                 success: true,
                 message: `${deletedCount} categor${deletedCount === 1 ? 'y' : 'ies'} removed successfully. Cannot delete: ${conflicts.join(', ')}. Please remove them from all products first.`,
             };
-        } else {
-            // All failed
-            throw new BadRequestException(
-                `Cannot delete category(ies): ${conflicts.join(', ')}. They are currently assigned to products. Please remove the category(ies) from all products first, then delete the category(ies).`,
-            );
         }
+        throw new BadRequestException(
+            `Cannot delete category(ies): ${conflicts.join(', ')}. They are currently assigned to products. Please remove the category(ies) from all products first, then delete the category(ies).`,
+        );
     }
 
     private buildTree(
@@ -711,6 +619,73 @@ export class CategoriesService {
         });
 
         return result;
+    }
+
+    /** Get category ID and all descendant (subcategory) IDs recursively */
+    private async getCategoryAndDescendantIds(categoryId: bigint): Promise<bigint[]> {
+        const children = await this.prisma.categories.findMany({
+            where: { parent_id: categoryId },
+            select: { id: true },
+        });
+        const ids: bigint[] = [categoryId];
+        for (const child of children) {
+            const descendantIds = await this.getCategoryAndDescendantIds(child.id);
+            ids.push(...descendantIds);
+        }
+        return ids;
+    }
+
+    /** Check if any of the given categories have products (as main or subcategory) */
+    private async checkCategoriesHaveProducts(
+        categoryIds: bigint[],
+    ): Promise<{ hasProducts: boolean; productCount: number }> {
+        const categoryIdsNumbers = categoryIds.map((id) => Number(id));
+
+        const productsAsMainCategory = await this.prisma.products.count({
+            where: { category_id: { in: categoryIds } },
+        });
+
+        const allProducts = await this.prisma.products.findMany({
+            select: { subcategory_ids: true },
+        });
+        const matchingSubcategoryProducts = allProducts.filter((product) => {
+            if (!product.subcategory_ids) return false;
+            const subcategoryIds = product.subcategory_ids as number[];
+            return (
+                Array.isArray(subcategoryIds) &&
+                subcategoryIds.some((sid) => categoryIdsNumbers.includes(sid))
+            );
+        });
+
+        const productCount =
+            productsAsMainCategory + matchingSubcategoryProducts.length;
+        return {
+            hasProducts: productCount > 0,
+            productCount,
+        };
+    }
+
+    /** Delete category and all its subcategories recursively (children first, then self) */
+    private async deleteCategoryRecursive(categoryId: bigint): Promise<number> {
+        const children = await this.prisma.categories.findMany({
+            where: { parent_id: categoryId },
+            select: { id: true, cover_image: true },
+        });
+        let count = 0;
+        for (const child of children) {
+            count += await this.deleteCategoryRecursive(child.id);
+        }
+        const category = await this.prisma.categories.findUnique({
+            where: { id: categoryId },
+            select: { cover_image: true },
+        });
+        if (category?.cover_image) {
+            this.deleteImage(category.cover_image);
+        }
+        await this.prisma.categories.delete({
+            where: { id: categoryId },
+        });
+        return count + 1;
     }
 
     private deleteImage(imagePath: string) {

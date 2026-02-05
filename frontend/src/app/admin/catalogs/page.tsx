@@ -92,8 +92,8 @@ export default function AdminCatalogsIndex() {
         loadCatalogs();
     }, [currentPage, perPage]);
 
-    const loadCatalogs = async () => {
-        setLoading(true);
+    const loadCatalogs = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const response = await adminService.getCatalogs(currentPage, perPage);
             const items = response.data.items || response.data.data || [];
@@ -122,7 +122,7 @@ export default function AdminCatalogsIndex() {
             });
         } catch (error: any) {
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -201,7 +201,7 @@ export default function AdminCatalogsIndex() {
                 is_active: !catalog.is_active,
                 display_order: catalog.display_order,
             });
-            await loadCatalogs();
+            await loadCatalogs(true);
         } catch (error: any) {
             toastError(error.response?.data?.message || 'Failed to toggle catalog. Please try again.');
         }
