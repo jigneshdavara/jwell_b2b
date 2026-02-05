@@ -4,13 +4,7 @@ on:
   push:
     branches:
       - nestjs_backend
-
   workflow_dispatch:
-    inputs:
-      run_seed:
-        description: "Run seed after migrate? (true/false)"
-        required: false
-        default: "false"
 
 jobs:
   build:
@@ -71,8 +65,6 @@ jobs:
           npm ci
           npx prisma generate
           npm run build
-          # ensure seed compiled exists (after you fix tsconfig.build.json)
-          test -f dist/src/seeders/seed.js || (echo "❌  dist/src/seeders/seed.js missing. Fix tsconfig.build.json include." && exit 1)
 
       - name: 📦 Pack backend artifact
         shell: bash
@@ -181,15 +173,6 @@ jobs:
 
             echo "=== Prisma migrate deploy ==="
             npx prisma migrate deploy
-
-            echo "=== Optional seed (manual only) ==="
-            RUN_SEED="${{ github.event.inputs.run_seed }}"
-            if [ "$RUN_SEED" = "true" ]; then
-              echo "🌱 Running SEED (dist/seeders/seed.js)..."
-              node dist/src/seeders/seed.js
-            else
-              echo "⏭ Skipping seed"
-            fi
 
             echo "=== PM2 start/restart ==="
             command -v pm2 >/dev/null 2>&1 || (echo "❌ pm2 not installed" && exit 1)
