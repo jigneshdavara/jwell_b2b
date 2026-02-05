@@ -29,7 +29,7 @@ export default function VerifyEmailPage() {
 
     // Check for error query parameter (from verification link page)
     useEffect(() => {
-        const error = searchParams.get('error');
+        const error = searchParams?.get('error');
         if (error) {
             setStatus(decodeURIComponent(error));
         }

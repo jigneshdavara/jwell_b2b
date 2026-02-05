@@ -39,7 +39,7 @@ export default function InvoicesPage() {
     const [loading, setLoading] = useState(true);
 
     const currentPage = useMemo(() => {
-        const page = searchParams.get('page');
+        const page = searchParams?.get('page');
         return page ? parseInt(page, 10) : 1;
     }, [searchParams]);
 

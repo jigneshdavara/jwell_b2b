@@ -31,6 +31,7 @@ export default function AdminLayout({
   }, []);
 
   const isMatch = (pattern: string) => {
+    if (!pathname) return false;
     // Exact match takes priority
     if (pathname === pattern) {
       return true;

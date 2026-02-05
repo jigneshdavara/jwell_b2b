@@ -148,7 +148,7 @@ export default function QuotationDetailPage() {
 
     const fetchQuotation = useCallback(async () => {
         try {
-            const quotationGroupId = typeof params.id === 'string' ? params.id : String(params.id);
+            const quotationGroupId = typeof params?.id === 'string' ? params.id : String(params?.id ?? '');
             const response = await frontendService.getQuotation(quotationGroupId);
             const data = response.data.quotation || response.data;
             
@@ -246,13 +246,13 @@ export default function QuotationDetailPage() {
         } finally {
             setLoading(false);
         }
-    }, [params.id]);
+    }, [params?.id]);
 
     useEffect(() => {
-        if (params.id) {
+        if (params?.id) {
             fetchQuotation();
         }
-    }, [params.id, fetchQuotation]);
+    }, [params?.id, fetchQuotation]);
 
     // Poll for status updates when quotation is pending customer confirmation or when admin makes changes
     useEffect(() => {
@@ -303,7 +303,7 @@ export default function QuotationDetailPage() {
 
         setSubmitting(true);
         try {
-            const quotationGroupId = typeof params.id === 'string' ? params.id : String(params.id);
+            const quotationGroupId = typeof params?.id === 'string' ? params.id : String(params?.id ?? '');
             await frontendService.sendQuotationMessage(quotationGroupId, message);
             setMessage('');
             await fetchQuotation();
@@ -320,7 +320,7 @@ export default function QuotationDetailPage() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const quotationGroupId = typeof params.id === 'string' ? params.id : String(params.id);
+            const quotationGroupId = typeof params?.id === 'string' ? params.id : String(params?.id ?? '');
             await frontendService.confirmQuotation(quotationGroupId);
             await fetchQuotation();
             // Toast handled by API interceptor if backend returns response.data.message
@@ -336,7 +336,7 @@ export default function QuotationDetailPage() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const quotationGroupId = typeof params.id === 'string' ? params.id : String(params.id);
+            const quotationGroupId = typeof params?.id === 'string' ? params.id : String(params?.id ?? '');
             await frontendService.declineQuotation(quotationGroupId);
             await fetchQuotation();
             // Toast handled by API interceptor if backend returns response.data.message

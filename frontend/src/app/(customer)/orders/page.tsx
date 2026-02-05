@@ -36,7 +36,7 @@ export default function OrdersPage() {
 
     // Get current page from URL
     const currentPage = useMemo(() => {
-        const page = searchParams.get('page');
+        const page = searchParams?.get('page');
         return page ? parseInt(page, 10) : 1;
     }, [searchParams]);
 

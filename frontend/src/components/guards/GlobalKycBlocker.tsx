@@ -70,7 +70,7 @@ export default function GlobalKycBlocker() {
       }
 
       // If user is on KYC onboarding page, allow all links (they're managing their KYC)
-      if (pathname === '/onboarding/kyc' || pathname.startsWith('/onboarding/kyc')) {
+      if (pathname && (pathname === '/onboarding/kyc' || pathname.startsWith('/onboarding/kyc'))) {
         return;
       }
 

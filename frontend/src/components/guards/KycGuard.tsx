@@ -81,7 +81,7 @@ export default function KycGuard({ children, user: providedUser, loading: provid
             let currentLoading = providedLoading;
 
             // Allow access to KYC onboarding page immediately
-            if (pathname === '/onboarding/kyc' || pathname.startsWith('/onboarding/kyc')) {
+            if (pathname && (pathname === '/onboarding/kyc' || pathname.startsWith('/onboarding/kyc'))) {
                 setIsAllowed(true);
                 hasChecked.current = true;
                 setLoading(false);
@@ -113,7 +113,7 @@ export default function KycGuard({ children, user: providedUser, loading: provid
                 }
 
                 // Immediately block rendering if not on onboarding page (will allow after check)
-                if (pathname !== '/onboarding/kyc') {
+                if (pathname && pathname !== '/onboarding/kyc') {
                     setIsAllowed(null);
                 }
                 
@@ -141,7 +141,7 @@ export default function KycGuard({ children, user: providedUser, loading: provid
                     currentLoading = false;
                     setLoading(false);
                 }
-            } else if (!currentUser && pathname !== '/onboarding/kyc') {
+            } else if (!currentUser && pathname && pathname !== '/onboarding/kyc') {
                 // No user and not on KYC page - block rendering
                 setIsAllowed(null);
             }
@@ -159,7 +159,7 @@ export default function KycGuard({ children, user: providedUser, loading: provid
                     setLoading(false); // Stop loading since we have result
                     
                     // Only redirect if not already on KYC page (prevents unnecessary navigation)
-                    if (pathname !== '/onboarding/kyc' && !pathname.startsWith('/onboarding/kyc')) {
+                    if (pathname && pathname !== '/onboarding/kyc' && !pathname.startsWith('/onboarding/kyc')) {
                         if (!redirectingRef.current) {
                             redirectingRef.current = true;
                             // Use replace to avoid adding to history stack

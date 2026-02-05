@@ -106,7 +106,7 @@ const submitModes: Array<{
 
 export default function JobworkPage() {
   const searchParams = useSearchParams();
-  const productId = searchParams.get("product_id");
+  const productId = searchParams?.get("product_id");
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>({
