@@ -1,43 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { authService } from '@/services/authService';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { selectUser, selectIsKycApproved, selectIsCustomer } from '@/store/selectors/authSelectors';
 
 /**
- * Global component that intercepts all link clicks and navigation
- * to prevent navigation when KYC is not approved
- * This prevents the blink/flash effect by blocking navigation before it happens
+ * When KYC is pending, ONLY /onboarding/kyc is accessible - block ALL other internal navigation
+ * Uses Redux for synchronous KYC check - no async delay, blocks immediately
  */
 export default function GlobalKycBlocker() {
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
+  const user = useSelector((state: RootState) => selectUser(state));
+  const isKycApproved = useSelector((state: RootState) => selectIsKycApproved(state));
+  const isCustomer = useSelector((state: RootState) => selectIsCustomer(state));
 
   useEffect(() => {
-    // Fetch user data from API
-    authService.me()
-      .then((response) => {
-        setUser(response.data);
-      })
-      .catch(() => {
-        // If not authenticated, let auth handle it
-        setUser(null);
-      });
-  }, []);
-
-  useEffect(() => {
-    // Helper to check if KYC is approved
-    const isKycApproved = (): boolean => {
+    // Helper to check if KYC is approved - use Redux state (synchronous)
+    const isKycApprovedCheck = (): boolean => {
       if (!user) return true; // No user, let auth handle it
-
-      const userType = (user?.type ?? '').toLowerCase();
-      const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
-
-      // Only enforce KYC for customers
-      if (!isCustomer) return true;
-
-      const kycStatus = user?.kyc_status || user?.kycStatus;
-      return kycStatus === 'approved';
+      if (!isCustomer) return true; // Only enforce for customers
+      return isKycApproved;
     };
 
     // Intercept all link clicks globally
@@ -62,25 +46,17 @@ export default function GlobalKycBlocker() {
       }
 
       // Allow KYC document view/download links (storage URLs and download endpoints)
-      // Users should be able to view/download their own KYC documents even if not approved
       if (href.includes('/storage/kyc/') || 
           href.includes('/onboarding/kyc/documents/') ||
           href.includes('/api/onboarding/kyc/documents/')) {
         return;
       }
 
-      // If user is on KYC onboarding page, allow all links (they're managing their KYC)
-      if (pathname && (pathname === '/onboarding/kyc' || pathname.startsWith('/onboarding/kyc'))) {
-        return;
-      }
-
-      // Check KYC status
-      if (!isKycApproved()) {
-        // COMPLETELY BLOCK navigation
+      // When KYC is pending, block ALL internal navigation except /onboarding/kyc (already allowed above)
+      if (!isKycApprovedCheck()) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        // Don't navigate at all - stay on current page
         return false;
       }
     };
@@ -88,21 +64,14 @@ export default function GlobalKycBlocker() {
     // Intercept clicks on the document
     document.addEventListener('click', handleLinkClick, true); // Use capture phase
 
-    // Also intercept popstate (browser back/forward)
-    const handlePopState = (e: PopStateEvent) => {
-      // Allow if on KYC page
-      if (window.location.pathname === '/onboarding/kyc' || 
-          window.location.pathname.startsWith('/onboarding/kyc')) {
+    // Intercept popstate (browser back/forward) - redirect to KYC if user navigated to any blocked path
+    const handlePopState = () => {
+      const currentPath = window.location.pathname;
+      if (currentPath === '/onboarding/kyc' || currentPath.startsWith('/onboarding/kyc')) {
         return;
       }
-
-      // Check KYC status
-      if (!isKycApproved()) {
-        // Block back/forward navigation
-        e.preventDefault();
-        // Push current state back
-        window.history.pushState(null, '', window.location.pathname);
-        return false;
+      if (!isKycApprovedCheck()) {
+        window.location.replace('/onboarding/kyc');
       }
     };
 
@@ -112,7 +81,7 @@ export default function GlobalKycBlocker() {
       document.removeEventListener('click', handleLinkClick, true);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [pathname, user]);
+  }, [pathname, user, isKycApproved, isCustomer]);
 
   return null; // This component doesn't render anything
 }

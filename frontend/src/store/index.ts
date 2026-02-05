@@ -27,8 +27,8 @@ export const store = configureStore({
                 ignoredActions: ["persist/PERSIST", "persist/REHYDRATE"],
             },
         }),
-    // DevTools automatically enabled in development, disabled in production
-    devTools: process.env.NODE_ENV !== "production",
+    // DevTools: always enabled so Redux DevTools extension can connect (dev + production build)
+    devTools: true,
 });
 
 export type RootState = ReturnType<typeof store.getState>;

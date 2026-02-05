@@ -43,6 +43,9 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
   const isPublicPath = publicPaths.some(path => pathname === path || (path !== '/' && safePathname.startsWith(path)));
   const isAuthenticatedPath = authenticatedPaths.some(path => pathname === path || safePathname.startsWith(path));
 
+  // When KYC is pending, ONLY /onboarding/kyc is allowed - no other page accessible
+  const isAllowedWhenPendingKyc = safePathname === '/onboarding/kyc' || safePathname.startsWith('/onboarding/kyc/');
+
   useEffect(() => {
     const checkAuth = async () => {
       // For public paths, check if user is already authenticated and redirect if so
@@ -143,8 +146,19 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
       // For protected paths (including authenticated paths like KYC onboarding), check authentication
       try {
         // First check Redux state (synchronous, faster)
-        // If Redux shows user is authenticated, allow access immediately
+        // If Redux shows user is authenticated, check KYC for customer routes
         if (authState.isAuthenticated && authState.user && authState.token) {
+          const user = authState.user;
+          const userType = (user?.type ?? '').toLowerCase();
+          const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
+          const kycStatus = user?.kyc_status || user?.kycStatus;
+
+          // When KYC is pending, allow ONLY /onboarding/kyc - redirect from any other page
+          if (isCustomer && kycStatus !== 'approved' && !isAllowedWhenPendingKyc) {
+            router.replace('/onboarding/kyc');
+            return;
+          }
+
           setIsAuthenticated(true);
           setIsLoading(false);
           return;

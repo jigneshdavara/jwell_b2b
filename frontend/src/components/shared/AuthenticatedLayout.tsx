@@ -275,7 +275,10 @@ export default function AuthenticatedLayout({
         if (term.length === 0) {
             return;
         }
-
+        // Block search when KYC is pending - catalog requires KYC approval
+        if (isCustomer && !isKycApproved) {
+            return;
+        }
         router.push(`${route('frontend.catalog.index')}?search=${encodeURIComponent(term)}`);
     };
 
@@ -442,6 +445,7 @@ export default function AuthenticatedLayout({
                                 )}
                             </nav>
                             <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
+                                {isKycApproved && (
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -455,6 +459,7 @@ export default function AuthenticatedLayout({
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
                                     </svg>
                                 </button>
+                                )}
                                 <Link
                                     href={route('frontend.wishlist.index')}
                                     className="relative inline-flex h-6 w-6 items-center justify-center text-slate-600 transition hover:text-rose-600 sm:h-7 sm:w-7"
@@ -658,7 +663,7 @@ export default function AuthenticatedLayout({
                             </div>
                         </div>
                     )}
-                    {searchOpen && (
+                    {searchOpen && isKycApproved && (
                         <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 px-2 pt-16 sm:px-4 sm:pt-24">
                             <form onSubmit={handleSearchSubmit} className="w-full max-w-xl rounded-2xl bg-white p-3 shadow-2xl sm:rounded-3xl sm:p-6">
                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
