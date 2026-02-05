@@ -1,6 +1,9 @@
 name: 🌱 Prisma Seed (Manual Only)
 
 on:
+  push:
+    branches:
+      - nestjs_backend
   workflow_dispatch:
     inputs:
       confirm:
@@ -10,7 +13,6 @@ on:
 
 jobs:
   seed:
-    if: github.event.inputs.confirm == 'YES'
     runs-on: ubuntu-latest
 
     steps:
