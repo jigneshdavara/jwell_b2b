@@ -1,7 +1,7 @@
 'use client';
 
 import { Head } from '@/components/Head';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
@@ -86,6 +86,7 @@ export default function AdminCatalogsIndex() {
         per_page: 5,
         total: 0,
     });
+    const assignAllCheckboxRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         loadCatalogs();
@@ -323,14 +324,20 @@ export default function AdminCatalogsIndex() {
     // Use assignProducts directly (no client-side filtering when paginated)
     const filteredAssignProducts = assignProducts;
 
-    const visibleSelectedCount = useMemo(() => {
-        return filteredAssignProducts.filter((p) => assignSelectedIds.includes(p.id)).length;
-    }, [filteredAssignProducts, assignSelectedIds]);
+    const selectedCount = assignSelectedIds.length;
+    const totalCount = assignProductsMeta.total;
 
-    const allVisibleSelected = useMemo(() => {
-        if (filteredAssignProducts.length === 0) return false;
-        return filteredAssignProducts.every((p) => assignSelectedIds.includes(p.id));
-    }, [filteredAssignProducts, assignSelectedIds]);
+    const assignAllSelected = useMemo(() => {
+        if (totalCount === 0) return false;
+        return selectedCount === totalCount;
+    }, [selectedCount, totalCount]);
+
+    useEffect(() => {
+        const el = assignAllCheckboxRef.current;
+        if (el) {
+            el.indeterminate = selectedCount > 0 && selectedCount < totalCount;
+        }
+    }, [selectedCount, totalCount]);
 
     const toggleAssignProduct = (productId: number) => {
         setAssignSelectedIds((prev) =>
@@ -340,22 +347,30 @@ export default function AdminCatalogsIndex() {
         );
     };
 
-    const selectAllVisible = () => {
-        const visibleIds = filteredAssignProducts.map((p) => p.id);
-        setAssignSelectedIds((prev) => {
-            const newIds = [...prev];
-            visibleIds.forEach((id) => {
-                if (!newIds.includes(id)) {
-                    newIds.push(id);
-                }
-            });
-            return newIds;
-        });
+    const selectAll = async () => {
+        if (!assigningCatalog) return;
+        if (totalCount === 0) return;
+
+        setAssignLoading(true);
+        try {
+            const response = await adminService.getAssignProducts(
+                assigningCatalog.id,
+                1,
+                totalCount,
+                assignSearchTerm || undefined
+            );
+            const products = response.data?.products || [];
+            const allIds = products.map((p: { id: number }) => p.id);
+            setAssignSelectedIds(allIds);
+        } catch (error) {
+            console.error('Failed to select all:', error);
+        } finally {
+            setAssignLoading(false);
+        }
     };
 
-    const deselectAllVisible = () => {
-        const visibleIds = filteredAssignProducts.map((p) => p.id);
-        setAssignSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    const deselectAll = () => {
+        setAssignSelectedIds([]);
     };
 
     // Load assign products with pagination
@@ -925,22 +940,24 @@ export default function AdminCatalogsIndex() {
                                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                         <button
                                             type="button"
-                                            onClick={selectAllVisible}
-                                            className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                            onClick={selectAll}
+                                            disabled={assignLoading || totalCount === 0}
+                                            className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Select all visible
+                                            Select all
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={deselectAllVisible}
-                                            className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                            onClick={deselectAll}
+                                            disabled={assignLoading || selectedCount === 0}
+                                            className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Deselect all visible
+                                            Deselect all
                                         </button>
                                     </div>
                                     <div className="text-xs sm:text-sm text-slate-600">
-                                        <span className="font-semibold">{visibleSelectedCount}</span> selected /{' '}
-                                        <span className="font-semibold">{filteredAssignProducts.length}</span> visible
+                                        <span className="font-semibold">{selectedCount}</span> selected /{' '}
+                                        <span className="font-semibold">{totalCount}</span> total
                                     </div>
                                 </div>
 
@@ -963,18 +980,19 @@ export default function AdminCatalogsIndex() {
                                                     <tr>
                                                         <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">
                                                             <input
+                                                                ref={assignAllCheckboxRef}
                                                                 type="checkbox"
-                                                                checked={allVisibleSelected}
+                                                                checked={assignAllSelected}
                                                                 onChange={() => {
-                                                                    if (allVisibleSelected) {
-                                                                        deselectAllVisible();
+                                                                    if (assignAllSelected) {
+                                                                        deselectAll();
                                                                     } else {
-                                                                        selectAllVisible();
+                                                                        selectAll();
                                                                     }
                                                                 }}
-                                                                disabled={assignPaginationLoading}
+                                                                disabled={assignPaginationLoading || assignLoading || totalCount === 0}
                                                                 className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                aria-label="Select all visible products"
+                                                                aria-label="Select all products"
                                                             />
                                                         </th>
                                                         <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Product</th>
