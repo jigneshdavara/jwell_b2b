@@ -5,7 +5,6 @@ import AuthenticatedLayout from "@/components/shared/AuthenticatedLayout";
 import { tokenService } from "@/services/tokenService";
 import { useTokenRefresh } from "@/hooks/useTokenRefresh";
 import KycGuard from "@/components/guards/KycGuard";
-import GlobalKycBlocker from "@/components/guards/GlobalKycBlocker";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchUser } from "@/store/slices/authSlice";
 import { fetchCart } from "@/store/slices/cartSlice";
@@ -90,7 +89,6 @@ export default function CustomerLayout({
 
   return (
     <>
-      <GlobalKycBlocker />
       <AuthenticatedLayout>
         <KycGuard user={user} loading={loading}>
           {children}

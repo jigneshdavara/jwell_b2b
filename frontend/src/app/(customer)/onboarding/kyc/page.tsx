@@ -219,37 +219,55 @@ export default function KycOnboardingPage() {
     };
 
     const handleDownloadDocument = async (documentId: number | string) => {
+        const doc = documents.find((d) => d.id === documentId);
+        const getExtension = (): string => {
+            const extRegex = /\.(pdf|png|jpg|jpeg|gif|webp)$/i;
+            if (doc?.file_path) {
+                const match = doc.file_path.match(extRegex);
+                if (match) return match[1].toLowerCase();
+            }
+            if (doc?.url) {
+                const path = doc.url.split('?')[0];
+                const match = path.match(extRegex);
+                if (match) return match[1].toLowerCase();
+            }
+            return 'pdf';
+        };
+        const filename = doc
+            ? `${doc.type}-${documentId}.${getExtension()}`
+            : `document-${documentId}.${getExtension()}`;
+
+        // Use static file URL when available - works regardless of KYC status
+        // (bypasses API which may have KYC-related interceptors when pending)
+        if (doc?.url) {
+            const link = document.createElement('a');
+            link.href = doc.url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            return;
+        }
+
+        // Fallback: fetch via API (for edge cases where url is missing)
         try {
             const blob = await kycService.downloadDocument(documentId);
-            // Get the document to determine filename
-            const doc = documents.find((d) => d.id === documentId);
-            
-            // Determine file extension from blob type or file_path
-            let extension = 'pdf'; // default
-            if (doc?.file_path) {
-                const match = doc.file_path.match(/\.(pdf|png|jpg|jpeg)$/i);
-                if (match) {
-                    extension = match[1].toLowerCase();
-                }
-            } else if (blob.type) {
+            let extension = getExtension();
+            if (blob.type) {
                 if (blob.type.includes('pdf')) extension = 'pdf';
                 else if (blob.type.includes('png')) extension = 'png';
                 else if (blob.type.includes('jpeg') || blob.type.includes('jpg')) extension = 'jpg';
             }
-            
-            const filename = doc 
+            const finalFilename = doc
                 ? `${doc.type}-${documentId}.${extension}`
                 : `document-${documentId}.${extension}`;
-            
-            // Create a temporary URL for the blob
+
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = filename;
+            link.download = finalFilename;
             document.body.appendChild(link);
             link.click();
-            
-            // Cleanup
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
         } catch (e: any) {

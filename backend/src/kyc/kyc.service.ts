@@ -232,6 +232,7 @@ export class KycService {
                 type: doc.type,
                 status: doc.status,
                 remarks: doc.remarks,
+                file_path: doc.file_path,
                 url: doc.file_path ? `/${doc.file_path}` : null,
                 download_url: `/api/onboarding/kyc/documents/${doc.id}/download`,
                 uploaded_at: doc.created_at?.toISOString(),

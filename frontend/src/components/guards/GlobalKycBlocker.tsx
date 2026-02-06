@@ -7,8 +7,9 @@ import { RootState } from '@/store';
 import { selectUser, selectIsKycApproved, selectIsCustomer } from '@/store/selectors/authSelectors';
 
 /**
- * When KYC is pending, ONLY /onboarding/kyc is accessible - block ALL other internal navigation
- * Uses Redux for synchronous KYC check - no async delay, blocks immediately
+ * Global navigation guard - handles both:
+ * 1. KYC: When pending, ONLY /onboarding/kyc accessible for customers
+ * 2. Role: Cross-panel blocking - admin/customer/production can only access their panel routes
  */
 export default function GlobalKycBlocker() {
   const pathname = usePathname();
@@ -17,64 +18,82 @@ export default function GlobalKycBlocker() {
   const isCustomer = useSelector((state: RootState) => selectIsCustomer(state));
 
   useEffect(() => {
-    // Helper to check if KYC is approved - use Redux state (synchronous)
     const isKycApprovedCheck = (): boolean => {
-      if (!user) return true; // No user, let auth handle it
-      if (!isCustomer) return true; // Only enforce for customers
+      if (!user) return true;
+      if (!isCustomer) return true;
       return isKycApproved;
     };
 
-    // Intercept all link clicks globally
+    const isAdminPath = (path: string) => path.startsWith('/admin');
+    const isProductionPath = (path: string) => path.startsWith('/production');
+    const isCustomerPath = (path: string) =>
+      !isAdminPath(path) && !isProductionPath(path) && path !== '/' &&
+      !path.startsWith('/login') && !path.startsWith('/register') &&
+      !path.startsWith('/forgot-password') && !path.startsWith('/reset-password') &&
+      !path.startsWith('/verify-email') && !path.startsWith('/confirm-password');
+
     const handleLinkClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      
-      // Find the closest anchor tag
-      const anchor = target.closest('a');
+      const anchor = (e.target as HTMLElement).closest('a');
       if (!anchor) return;
 
       const href = anchor.getAttribute('href');
-      if (!href) return;
-
-      // Allow navigation to KYC page
-      if (href === '/onboarding/kyc' || href.startsWith('/onboarding/kyc')) {
+      if (!href || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) {
         return;
       }
 
-      // Allow external links and mailto/tel links
-      if (href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+      const pathToCheck = href.split('?')[0];
+
+      // Allow KYC document view/download links
+      if (href.includes('/storage/kyc/') || href.includes('/onboarding/kyc/documents/') || href.includes('/api/onboarding/kyc/documents/')) {
         return;
       }
 
-      // Allow KYC document view/download links (storage URLs and download endpoints)
-      if (href.includes('/storage/kyc/') || 
-          href.includes('/onboarding/kyc/documents/') ||
-          href.includes('/api/onboarding/kyc/documents/')) {
-        return;
+      if (user) {
+        const userType = (user?.type ?? '').toLowerCase();
+        const isAdmin = ['admin', 'super-admin'].includes(userType);
+        const isProd = userType === 'production';
+
+        // Role-based: block cross-panel navigation
+        if (isCustomer && (isAdminPath(pathToCheck) || isProductionPath(pathToCheck))) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return false;
+        }
+        if (isAdmin && (isCustomerPath(pathToCheck) || isProductionPath(pathToCheck))) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return false;
+        }
+        if (isProd && (isAdminPath(pathToCheck) || isCustomerPath(pathToCheck))) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return false;
+        }
       }
 
-      // When KYC is pending, block ALL internal navigation except /onboarding/kyc (already allowed above)
-      if (!isKycApprovedCheck()) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return false;
+      // KYC: when pending, block all except /onboarding/kyc
+      if (href !== '/onboarding/kyc' && !href.startsWith('/onboarding/kyc')) {
+        if (!isKycApprovedCheck()) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return false;
+        }
       }
     };
 
-    // Intercept clicks on the document
-    document.addEventListener('click', handleLinkClick, true); // Use capture phase
+    document.addEventListener('click', handleLinkClick, true);
 
-    // Intercept popstate (browser back/forward) - redirect to KYC if user navigated to any blocked path
     const handlePopState = () => {
       const currentPath = window.location.pathname;
-      if (currentPath === '/onboarding/kyc' || currentPath.startsWith('/onboarding/kyc')) {
-        return;
-      }
+      if (currentPath === '/onboarding/kyc' || currentPath.startsWith('/onboarding/kyc')) return;
       if (!isKycApprovedCheck()) {
         window.location.replace('/onboarding/kyc');
       }
     };
-
     window.addEventListener('popstate', handlePopState);
 
     return () => {
@@ -83,6 +102,6 @@ export default function GlobalKycBlocker() {
     };
   }, [pathname, user, isKycApproved, isCustomer]);
 
-  return null; // This component doesn't render anything
+  return null;
 }
 

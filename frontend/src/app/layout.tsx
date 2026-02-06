@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthMiddleware } from "@/middleware/authMiddleware";
 import { StoreProvider } from "@/components/providers/StoreProvider";
+import GlobalKycBlocker from "@/components/guards/GlobalKycBlocker";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import TopLoadingBar from "@/components/ui/TopLoadingBar";
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className="antialiased" suppressHydrationWarning>
                 <StoreProvider>
                   <TopLoadingBar />
+                  <GlobalKycBlocker />
                   <AuthMiddleware>
                     {children}
                   </AuthMiddleware>

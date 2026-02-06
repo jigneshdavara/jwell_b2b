@@ -43,6 +43,11 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
   const isPublicPath = publicPaths.some(path => pathname === path || (path !== '/' && safePathname.startsWith(path)));
   const isAuthenticatedPath = authenticatedPaths.some(path => pathname === path || safePathname.startsWith(path));
 
+  // Route prefixes by panel - admin folder has all admin routes
+  const isAdminRoute = safePathname.startsWith('/admin');
+  const isProductionRoute = safePathname.startsWith('/production');
+  const isCustomerRoute = !isAdminRoute && !isProductionRoute && !isPublicPath;
+
   // When KYC is pending, ONLY /onboarding/kyc is allowed - no other page accessible
   const isAllowedWhenPendingKyc = safePathname === '/onboarding/kyc' || safePathname.startsWith('/onboarding/kyc/');
 
@@ -150,13 +155,34 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
         if (authState.isAuthenticated && authState.user && authState.token) {
           const user = authState.user;
           const userType = (user?.type ?? '').toLowerCase();
+          const isAdmin = ['admin', 'super-admin'].includes(userType);
           const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
+          const isProduction = userType === 'production';
           const kycStatus = user?.kyc_status || user?.kycStatus;
 
-          // When KYC is pending, allow ONLY /onboarding/kyc - redirect from any other page
-          if (isCustomer && kycStatus !== 'approved' && !isAllowedWhenPendingKyc) {
-            router.replace('/onboarding/kyc');
+          // Role-based route access: user can only access their panel's routes
+          if (isAdmin && !isAdminRoute) {
+            // Admin trying to access customer or production routes → redirect to admin panel
+            router.replace(route('admin.dashboard'));
             return;
+          }
+          if (isProduction && !isProductionRoute) {
+            // Production user trying to access admin or customer routes → redirect to production panel
+            router.replace(route('production.dashboard'));
+            return;
+          }
+          if (isCustomer) {
+            if (isAdminRoute || isProductionRoute) {
+              // Customer trying to access admin or production routes → redirect to user panel
+              const userRedirect = kycStatus === 'approved' ? route('dashboard') : '/onboarding/kyc';
+              router.replace(userRedirect);
+              return;
+            }
+            // When KYC is pending, allow ONLY /onboarding/kyc - redirect from any other page
+            if (kycStatus !== 'approved' && !isAllowedWhenPendingKyc) {
+              router.replace('/onboarding/kyc');
+              return;
+            }
           }
 
           setIsAuthenticated(true);
@@ -172,26 +198,76 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
         }
 
         // For authenticated paths (like KYC onboarding), allow access if token exists
-        // Don't try to refresh token for newly registered users - just allow access
+        // But admins/production should not access KYC - redirect to their panel
         if (isAuthenticatedPath) {
+          let userForPath = authState.user;
+          if (!userForPath) {
+            try {
+              const res = await authService.me();
+              userForPath = res.data;
+            } catch {
+              userForPath = null;
+            }
+          }
+          if (userForPath) {
+            const ut = (userForPath?.type ?? '').toLowerCase();
+            if (['admin', 'super-admin'].includes(ut)) {
+              router.replace(route('admin.dashboard'));
+              return;
+            }
+            if (ut === 'production') {
+              router.replace(route('production.dashboard'));
+              return;
+            }
+          }
           setIsAuthenticated(true);
           setIsLoading(false);
           return;
         }
 
-        // For other protected paths, refresh token (this validates and gets a new token)
-        // Only do this if Redux state is not available
+        // For other protected paths, refresh token and fetch user for role check
         if (!authState.isAuthenticated || !authState.token) {
           const token = await tokenService.refreshToken();
           
           if (!token) {
-            // Token invalid or refresh failed, redirect to login
             router.replace('/login');
             return;
           }
         }
 
-        // Token is valid (either from Redux or refreshed)
+        // Fetch user for role-based redirect when we don't have user in Redux
+        let user = authState.user;
+        if (!user) {
+          try {
+            const response = await authService.me();
+            user = response.data;
+          } catch {
+            user = null;
+          }
+        }
+        
+        if (user) {
+          const userType = (user?.type ?? '').toLowerCase();
+          const isAdmin = ['admin', 'super-admin'].includes(userType);
+          const isProduction = userType === 'production';
+          const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
+          const kycStatus = user?.kyc_status || user?.kycStatus;
+
+          if (isAdmin && !isAdminRoute) {
+            router.replace(route('admin.dashboard'));
+            return;
+          }
+          if (isProduction && !isProductionRoute) {
+            router.replace(route('production.dashboard'));
+            return;
+          }
+          if (isCustomer && (isAdminRoute || isProductionRoute)) {
+            const userRedirect = kycStatus === 'approved' ? route('dashboard') : '/onboarding/kyc';
+            router.replace(userRedirect);
+            return;
+          }
+        }
+
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -216,7 +292,7 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
     };
 
     checkAuth();
-  }, [pathname, router, isPublicPath, isAuthenticatedPath, authState.isAuthenticated, authState.user, authState.token]);
+  }, [pathname, router, isPublicPath, isAuthenticatedPath, isAdminRoute, isProductionRoute, authState.isAuthenticated, authState.user, authState.token]);
 
   // Auth pages that authenticated users should not access
   const authPages = [
