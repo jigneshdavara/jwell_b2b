@@ -526,17 +526,42 @@ export default function AdminUserGroupsIndex() {
     const selectedCount = assignSelectedIds.length;
     const totalCount = assignUsersMeta.total;
 
-    const assignAllSelected = useMemo(() => {
-        if (totalCount === 0) return false;
-        return selectedCount === totalCount;
-    }, [selectedCount, totalCount]);
+    const currentPageIds = useMemo(
+        () => filteredAssignUsers.map((u) => u.id),
+        [filteredAssignUsers]
+    );
+
+    const allOnCurrentPageSelected = useMemo(() => {
+        if (currentPageIds.length === 0) return false;
+        return currentPageIds.every((id) => assignSelectedIds.includes(id));
+    }, [currentPageIds, assignSelectedIds]);
+
+    const someOnCurrentPageSelected = useMemo(() => {
+        const selectedOnPage = currentPageIds.filter((id) =>
+            assignSelectedIds.includes(id)
+        );
+        return selectedOnPage.length > 0 && selectedOnPage.length < currentPageIds.length;
+    }, [currentPageIds, assignSelectedIds]);
 
     useEffect(() => {
         const el = assignAllCheckboxRef.current;
         if (el) {
-            el.indeterminate = selectedCount > 0 && selectedCount < totalCount;
+            el.indeterminate = someOnCurrentPageSelected;
         }
-    }, [selectedCount, totalCount]);
+    }, [someOnCurrentPageSelected]);
+
+    const selectAllOnCurrentPage = () => {
+        const idsToAdd = currentPageIds.filter(
+            (id) => !assignSelectedIds.includes(id)
+        );
+        setAssignSelectedIds((prev) => [...prev, ...idsToAdd]);
+    };
+
+    const deselectAllOnCurrentPage = () => {
+        setAssignSelectedIds((prev) =>
+            prev.filter((id) => !currentPageIds.includes(id))
+        );
+    };
 
     const toggleAssignUser = (userId: number) => {
         setAssignSelectedIds((prev) =>
@@ -1146,17 +1171,17 @@ export default function AdminUserGroupsIndex() {
                                                         <input
                                                             ref={assignAllCheckboxRef}
                                                             type="checkbox"
-                                                            checked={assignAllSelected}
+                                                            checked={allOnCurrentPageSelected}
                                                             onChange={() => {
-                                                                if (assignAllSelected) {
-                                                                    deselectAll();
+                                                                if (allOnCurrentPageSelected) {
+                                                                    deselectAllOnCurrentPage();
                                                                 } else {
-                                                                    selectAll();
+                                                                    selectAllOnCurrentPage();
                                                                 }
                                                             }}
-                                                            disabled={assignPaginationLoading || assignLoading || totalCount === 0}
+                                                            disabled={assignPaginationLoading || assignLoading || currentPageIds.length === 0}
                                                             className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            aria-label="Select all users"
+                                                            aria-label="Select all users on this page"
                                                         />
                                                     </th>
                                                     <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Name</th>
