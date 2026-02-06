@@ -378,7 +378,7 @@ export class AuthService {
         });
 
         // Send password reset email
-        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${token}?email=${encodeURIComponent(email)}`;
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}?email=${encodeURIComponent(email)}`;
 
         try {
             await this.mailService.sendPasswordResetLinkEmail(
@@ -580,7 +580,7 @@ export class AuthService {
 
         // Generate verification link
         const hash = crypto.createHash('sha256').update(email).digest('hex');
-        const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email/${user.id.toString()}/${hash}`;
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${user.id.toString()}/${hash}`;
 
         // Send verification email
         await this.mailService.sendEmailVerification(
