@@ -196,8 +196,37 @@ jobs:
 
             pm2 save
 
-            echo "=== Health checks ==="
-            curl -sS -I http://127.0.0.1:3000/ >/dev/null && echo "✅ Next OK" || echo "❌ Next FAIL"
-            curl -sS -I http://127.0.0.1:4000/api >/dev/null && echo "✅ Nest OK" || echo "❌ Nest FAIL"
+            echo "=== Health checks (3 retries, 2s sleep) ==="
 
-            echo "✅ Deployment completed"
+            check_with_restart () {
+              local url="$1"
+              local name="$2"
+              local app="$3"
+              local tries=3
+              local sleep_s=2
+
+              for i in $(seq 1 $tries); do
+                if curl -sS -I "$url" >/dev/null; then
+                  echo "✅ $name OK"
+                  return 0
+                fi
+
+                echo "⏳ $name failed ($i/$tries)"
+
+                if [ "$i" -eq "$tries" ]; then
+                  echo "🔄 Restarting $app (last attempt)"
+                  pm2 restart "$app" --update-env || true
+                fi
+
+                sleep "$sleep_s"
+              done
+
+              echo "❌ $name FAILED after $tries tries"
+              pm2 logs "$app" --lines 100 --nostream || true
+              return 1
+            }
+
+            check_with_restart "http://127.0.0.1:3000/" "Next" "jwell_frontend"
+            check_with_restart "http://127.0.0.1:4000/api" "Nest" "jwell_backend"
+
+            echo "✅ Deployment completed successfully"
