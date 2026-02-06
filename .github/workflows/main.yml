@@ -177,18 +177,18 @@ jobs:
             echo "=== PM2 start/restart ==="
             command -v pm2 >/dev/null 2>&1 || (echo "❌ pm2 not installed" && exit 1)
 
-            # Frontend
+            # Frontend (must use PORT=3000; backend .env may set PORT=4000)
             FRONT_ENTRY="$FRONT/.next/standalone/server.js"
             if pm2 describe jwell_frontend >/dev/null 2>&1; then
-              pm2 restart jwell_frontend --update-env
+              PORT=3000 pm2 restart jwell_frontend --update-env
             else
               cd "$FRONT"
               PORT=3000 pm2 start node --name jwell_frontend -- "$FRONT_ENTRY"
             fi
 
-            # Backend
+            # Backend (must use PORT=4000)
             if pm2 describe jwell_backend >/dev/null 2>&1; then
-              pm2 restart jwell_backend --update-env
+              PORT=4000 pm2 restart jwell_backend --update-env
             else
               cd "$BACK"
               PORT=4000 pm2 start dist/src/main.js --name jwell_backend
